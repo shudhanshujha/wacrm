@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import type { ReactNode } from "react";
 
-// Shared metadata for auth pages (login / signup / forgot-password).
-// None of these should be indexed — they'd compete with the marketing
-// landing in SERPs and offer nothing to a searcher who hasn't already
-// signed up. Each page still gets its own <title> via its own
-// metadata.title override below the route group layout.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   robots: {
     index: false,
@@ -19,6 +17,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default function AuthLayout({ children }: { children: ReactNode }) {
+export default async function AuthLayout({ children }: { children: ReactNode }) {
+  await cookies();
   return children;
 }

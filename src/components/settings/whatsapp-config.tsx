@@ -80,17 +80,8 @@ export function WhatsAppConfig() {
         setAccessToken(MASKED_TOKEN);
         setVerifyToken('');
         setTokenEdited(false);
-      } else {
-        setConfig(null);
-        setPhoneNumberId('');
-        setWabaId('');
-        setAccessToken('');
-        setVerifyToken('');
-        setTokenEdited(false);
-      }
 
-      // Then verify health via the API (decrypts token + pings Meta)
-      if (data) {
+        // Then verify health via the API (decrypts token + pings Meta)
         try {
           const res = await fetch('/api/whatsapp/config', { method: 'GET' });
           const payload = await res.json();
@@ -101,7 +92,13 @@ export function WhatsAppConfig() {
             setStatusMessage('');
           } else {
             setConnectionStatus('disconnected');
-            setResetReason(payload.needs_reset ? 'token_corrupted' : payload.reason === 'meta_api_error' ? 'meta_api_error' : null);
+            setResetReason(
+              payload.needs_reset
+                ? 'token_corrupted'
+                : payload.reason === 'meta_api_error'
+                  ? 'meta_api_error'
+                  : null
+            );
             setStatusMessage(payload.message || '');
           }
         } catch (err) {
@@ -109,9 +106,36 @@ export function WhatsAppConfig() {
           setConnectionStatus('disconnected');
         }
       } else {
+        setConfig(null);
+        setPhoneNumberId('');
+        setWabaId('');
+        setAccessToken('');
+        setVerifyToken('');
+        setTokenEdited(false);
         setConnectionStatus('disconnected');
         setResetReason(null);
         setStatusMessage('');
+
+        // Check for default token in environment
+        try {
+          const res = await fetch('/api/whatsapp/config', { method: 'GET' });
+          const payload = await res.json();
+          if (payload.default_token || payload.default_phone_number_id || payload.default_waba_id) {
+            if (payload.default_token) {
+              setAccessToken(payload.default_token);
+              setTokenEdited(true);
+            }
+            if (payload.default_phone_number_id) {
+              setPhoneNumberId(payload.default_phone_number_id);
+            }
+            if (payload.default_waba_id) {
+              setWabaId(payload.default_waba_id);
+            }
+            toast.info('Meta credentials pre-filled from environment');
+          }
+        } catch (err) {
+          // ignore
+        }
       }
     } catch (err) {
       console.error('fetchConfig error:', err);

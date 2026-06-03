@@ -49,6 +49,10 @@ export async function GET() {
           connected: false,
           reason: 'no_config',
           message: 'No WhatsApp configuration saved yet. Fill in the form and click Save Configuration.',
+          env_token: process.env.META_ACCESS_TOKEN ? 'SET' : 'NOT_SET',
+          default_token: process.env.META_ACCESS_TOKEN,
+          default_phone_number_id: process.env.META_PHONE_NUMBER_ID,
+          default_waba_id: process.env.META_WABA_ID,
         },
         { status: 200 }
       )

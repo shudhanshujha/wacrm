@@ -1,6 +1,10 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+
+export const dynamic = "force-dynamic"
+
 import { Settings, MessageSquare, Tag, User, Palette } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { WhatsAppConfig } from '@/components/settings/whatsapp-config';
@@ -24,7 +28,7 @@ function isTabValue(v: string | null): v is TabValue {
   return !!v && (TAB_VALUES as readonly string[]).includes(v);
 }
 
-export default function SettingsPage() {
+function SettingsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -113,5 +117,13 @@ export default function SettingsPage() {
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense>
+      <SettingsContent />
+    </Suspense>
   );
 }

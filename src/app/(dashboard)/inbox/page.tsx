@@ -1,7 +1,10 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+
+export const dynamic = "force-dynamic"
+
 import { createClient } from "@/lib/supabase/client";
 import type { Conversation, Message, Contact, ConversationStatus } from "@/types";
 import { useRealtime } from "@/hooks/use-realtime";
@@ -12,7 +15,7 @@ import { toast } from "sonner";
 import { WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export default function InboxPage() {
+function InboxContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   /**
@@ -341,7 +344,8 @@ export default function InboxPage() {
       // is an event handler, so the setState calls below are allowed by
       // react-hooks/set-state-in-effect. Runs once per ?c=<id> URL value
       // via the ref, so realtime refreshes of the list can't snap the
-      // user back to the deep-linked thread after they've navigated.
+      // user back to the deep-linked conversation if they've already clicked
+      // elsewhere.
       if (
         deepLinkConvId &&
         autoSelectedForDeepLinkRef.current !== deepLinkConvId &&
@@ -559,4 +563,12 @@ export default function InboxPage() {
       </div>
     </div>
   );
+}
+
+export default function InboxPage() {
+  return (
+    <Suspense>
+      <InboxContent />
+    </Suspense>
+  )
 }
