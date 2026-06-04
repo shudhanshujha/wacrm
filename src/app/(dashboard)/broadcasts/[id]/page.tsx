@@ -153,7 +153,7 @@ export default function BroadcastDetailPage() {
   const [recipients, setRecipients] = useState<BroadcastRecipient[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<RecipientStatus | 'all'>(
+  const [statusFilter, setStatusFilter] = useState<RecipientStatus | 'all' | 'clicked'>(
     'all',
   );
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -444,9 +444,9 @@ export default function BroadcastDetailPage() {
                   All statuses
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={() => setStatusFilter('clicked' as any)}
+                  onClick={() => setStatusFilter('clicked')}
                   className={
-                    (statusFilter as string) === 'clicked'
+                    statusFilter === 'clicked'
                       ? 'text-primary'
                       : 'text-muted-foreground'
                   }

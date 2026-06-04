@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
-import { MessageTemplate } from '@/types';
+import { MessageTemplate, AudienceCondition } from '@/types';
 import { Step1ChooseTemplate } from '@/components/broadcasts/step1-choose-template';
 import { Step2SelectAudience } from '@/components/broadcasts/step2-select-audience';
 import { Step3Personalize } from '@/components/broadcasts/step3-personalize';
@@ -41,7 +41,7 @@ export default function NewBroadcastContent() {
     csvContacts?: { phone: string; name?: string }[];
     excludeTagIds?: string[];
     segmentContactIds?: string[];
-    conditions?: any[];
+    conditions?: AudienceCondition[];
     conditionLogic?: 'AND' | 'OR';
   }>(
     isRetarget

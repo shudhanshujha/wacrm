@@ -133,7 +133,7 @@ export function WhatsAppConfig() {
             }
             toast.info('Meta credentials pre-filled from environment');
           }
-        } catch (err) {
+        } catch {
           // ignore
         }
       }

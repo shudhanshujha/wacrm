@@ -217,6 +217,21 @@ export interface Deal {
 export type BroadcastStatus = 'draft' | 'scheduled' | 'sending' | 'sent' | 'failed';
 export type RecipientStatus = 'pending' | 'sent' | 'delivered' | 'read' | 'replied' | 'failed';
 
+export type CustomFieldOperator = 'is' | 'is_not' | 'contains' | 'is_set' | 'is_not_set';
+
+export interface AudienceCondition {
+  id: string;
+  type: 'tag' | 'custom_field' | 'contact_field';
+  tagId?: string;
+  tagOperator?: 'has' | 'does_not_have';
+  customFieldId?: string;
+  customFieldOperator?: CustomFieldOperator;
+  customFieldValue?: string;
+  contactField?: 'name' | 'email' | 'company' | 'phone';
+  contactFieldOperator?: 'is_set' | 'is_not_set' | 'contains';
+  contactFieldValue?: string;
+}
+
 export interface Broadcast {
   id: string;
   user_id: string;

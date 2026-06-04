@@ -144,6 +144,22 @@ export function Step2SelectAudience({
     fetchFields();
   }, [audience.type]);
 
+  // Tags are used both by the primary "Filter by Tags" audience type
+  // AND by the exclude-list below — so always load once on mount.
+  useEffect(() => {
+    async function fetchTags() {
+      setLoadingTags(true);
+      try {
+        const supabase = createClient();
+        const { data } = await supabase.from('tags').select('*').order('name');
+        setTags(data ?? []);
+      } finally {
+        setLoadingTags(false);
+      }
+    }
+    fetchTags();
+  }, []);
+
   const fetchEstimatedCount = useCallback(async () => {
     setLoadingCount(true);
     try {
@@ -271,6 +287,9 @@ export function Step2SelectAudience({
     audience.customField,
     audience.csvContacts,
     audience.excludeTagIds,
+    audience.segmentContactIds,
+    conditions,
+    conditionLogic,
   ]);
 
   useEffect(() => {
@@ -450,11 +469,11 @@ export function Step2SelectAudience({
           </div>
 
           <div className="space-y-3">
-            {conditions.map((cond, idx) => (
+            {conditions.map((cond) => (
               <div key={cond.id} className="group relative flex flex-wrap items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/30 p-3 pr-10">
                 <Select
                   value={cond.type}
-                  onValueChange={(val: any) => val && updateCondition(cond.id, { type: val })}
+                  onValueChange={(val: string | null) => val && updateCondition(cond.id, { type: val as any })}
                 >
                   <SelectTrigger className="h-9 w-[130px] border-slate-700 bg-slate-800 text-xs text-white">
                     <SelectValue />
@@ -470,7 +489,7 @@ export function Step2SelectAudience({
                   <>
                     <Select
                       value={cond.tagOperator ?? 'has'}
-                      onValueChange={(val: any) => val && updateCondition(cond.id, { tagOperator: val })}
+                      onValueChange={(val: string | null) => val && updateCondition(cond.id, { tagOperator: val as any })}
                     >
                       <SelectTrigger className="h-9 w-[120px] border-slate-700 bg-slate-800 text-xs text-white">
                         <SelectValue />
@@ -482,7 +501,7 @@ export function Step2SelectAudience({
                     </Select>
                     <Select
                       value={cond.tagId ?? ''}
-                      onValueChange={(val) => val && updateCondition(cond.id, { tagId: val })}
+                      onValueChange={(val: string | null) => val && updateCondition(cond.id, { tagId: val })}
                     >
                       <SelectTrigger className="h-9 flex-1 border-slate-700 bg-slate-800 text-xs text-white">
                         <SelectValue placeholder="Select tag..." />
@@ -500,7 +519,7 @@ export function Step2SelectAudience({
                   <>
                     <Select
                       value={cond.customFieldId ?? ''}
-                      onValueChange={(val) => val && updateCondition(cond.id, { customFieldId: val })}
+                      onValueChange={(val: string | null) => val && updateCondition(cond.id, { customFieldId: val })}
                     >
                       <SelectTrigger className="h-9 w-[140px] border-slate-700 bg-slate-800 text-xs text-white">
                         <SelectValue placeholder="Select field..." />
@@ -513,7 +532,7 @@ export function Step2SelectAudience({
                     </Select>
                     <Select
                       value={cond.customFieldOperator ?? 'is'}
-                      onValueChange={(val: any) => val && updateCondition(cond.id, { customFieldOperator: val })}
+                      onValueChange={(val: string | null) => val && updateCondition(cond.id, { customFieldOperator: val as any })}
                     >
                       <SelectTrigger className="h-9 w-[110px] border-slate-700 bg-slate-800 text-xs text-white">
                         <SelectValue />
@@ -542,7 +561,7 @@ export function Step2SelectAudience({
                   <>
                     <Select
                       value={cond.contactField ?? 'name'}
-                      onValueChange={(val: any) => val && updateCondition(cond.id, { contactField: val })}
+                      onValueChange={(val: string | null) => val && updateCondition(cond.id, { contactField: val as any })}
                     >
                       <SelectTrigger className="h-9 w-[110px] border-slate-700 bg-slate-800 text-xs text-white">
                         <SelectValue />
@@ -556,7 +575,7 @@ export function Step2SelectAudience({
                     </Select>
                     <Select
                       value={cond.contactFieldOperator ?? 'contains'}
-                      onValueChange={(val: any) => val && updateCondition(cond.id, { contactFieldOperator: val })}
+                      onValueChange={(val: string | null) => val && updateCondition(cond.id, { contactFieldOperator: val as any })}
                     >
                       <SelectTrigger className="h-9 w-[110px] border-slate-700 bg-slate-800 text-xs text-white">
                         <SelectValue />

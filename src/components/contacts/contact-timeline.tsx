@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { MessageCircle, Megaphone, ArrowDownLeft, ArrowUpRight, Clock, Loader2 } from 'lucide-react';
+import { Megaphone, ArrowDownLeft, ArrowUpRight, Clock, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 

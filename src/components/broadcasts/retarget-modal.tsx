@@ -122,7 +122,7 @@ export function RetargetModal({
         <DialogHeader>
           <DialogTitle className="text-foreground">Retarget Audience</DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            Create a new broadcast targeting a specific segment of this campaign's recipients.
+            Create a new broadcast targeting a specific segment of this campaign&apos;s recipients.
           </DialogDescription>
         </DialogHeader>
 

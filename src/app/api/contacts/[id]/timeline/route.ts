@@ -45,7 +45,7 @@ export async function GET(
     ...(broadcastReceipts ?? []).map(r => ({
       type: 'broadcast' as const,
       id: r.id,
-      broadcast_name: (r.broadcasts as any)?.name ?? 'Unknown Broadcast',
+      broadcast_name: (r.broadcasts as unknown as { name: string } | null)?.name ?? 'Unknown Broadcast',
       status: r.status,
       created_at: r.created_at,
     })),

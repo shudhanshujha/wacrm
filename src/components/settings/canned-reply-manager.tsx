@@ -60,6 +60,7 @@ export function CannedReplyManager() {
   }, [supabase]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchReplies();
   }, [fetchReplies]);
 

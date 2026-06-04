@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import type { Contact, Tag, ContactTag } from '@/types';
@@ -15,7 +15,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { Loader2 } from 'lucide-react';
 
 interface ContactFormProps {
@@ -46,6 +45,16 @@ export function ContactForm({
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [loadingTags, setLoadingTags] = useState(false);
 
+  const fetchTags = useCallback(async () => {
+    setLoadingTags(true);
+    const { data } = await supabase
+      .from('tags')
+      .select('*')
+      .order('name');
+    if (data) setTags(data);
+    setLoadingTags(false);
+  }, [supabase]);
+
   useEffect(() => {
     if (open) {
       setName(contact?.name ?? '');
@@ -55,17 +64,7 @@ export function ContactForm({
       setSelectedTagIds(contactTags.map((ct) => ct.tag_id));
       fetchTags();
     }
-  }, [open, contact]);
-
-  async function fetchTags() {
-    setLoadingTags(true);
-    const { data } = await supabase
-      .from('tags')
-      .select('*')
-      .order('name');
-    if (data) setTags(data);
-    setLoadingTags(false);
-  }
+  }, [open, contact, contactTags, fetchTags]);
 
   function toggleTag(tagId: string) {
     setSelectedTagIds((prev) =>
@@ -111,12 +110,12 @@ export function ContactForm({
           .from('contacts')
           .insert({
             user_id: user.id,
-            name: name.trim() || null,
-            phone: phone.trim(),
-            email: email.trim() || null,
-            company: company.trim() || null,
+            phone,
+            name: name || phone,
+            email: email || null,
+            company: company || null,
           })
-          .select('id')
+          .select()
           .single();
         if (error) throw error;
         contactId = data.id;

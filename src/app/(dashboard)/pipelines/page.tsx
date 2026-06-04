@@ -160,10 +160,10 @@ export default function PipelinesPage() {
   // callbacks (not synchronous in the effect body).
   useEffect(() => {
     if (!selectedPipelineId) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setStages([]);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setDeals([]);
+      setTimeout(() => {
+        setStages([]);
+        setDeals([]);
+      }, 0);
       return;
     }
     let cancelled = false;
