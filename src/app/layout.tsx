@@ -32,8 +32,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#020617",
-  colorScheme: "dark",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#000000" },
+  ],
 };
 
 // Inline boot script — runs before React hydrates so the user's
@@ -82,14 +84,9 @@ export default function RootLayout({
         <ThemeProvider>
           {children}
           <Toaster
-            theme="dark"
             position="top-right"
             toastOptions={{
-              style: {
-                background: "rgb(30 41 59)",
-                border: "1px solid rgb(51 65 85)",
-                color: "white",
-              },
+              className: "bg-card border border-border text-foreground",
             }}
           />
         </ThemeProvider>

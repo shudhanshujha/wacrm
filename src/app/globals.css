@@ -51,13 +51,13 @@
 /* ============================================================
  * COLOR THEMES
  *
- * 5 dark themes sharing structure, swapping only the primary
+ * 7 themes sharing structure, swapping only the primary
  * accent (and a tiny hue rotation on the slate base). Switched
  * at runtime by setting `document.documentElement.dataset.theme`
  * — see ThemeProvider + the inline boot script in layout.tsx.
  *
- * `:root` mirrors Violet so default visitors render correctly
- * before JS runs. `[data-theme="violet"]` is included for the
+ * `:root` mirrors Midnight so default visitors render correctly
+ * before JS runs. `[data-theme="midnight"]` is included for the
  * explicit-select path (settings UI sets it after a pick).
  *
  * The three `--primary-*` extras (hover / soft / soft-2) are
@@ -70,6 +70,82 @@
  * ============================================================ */
 
 :root,
+html[data-theme="midnight"] {
+  --background: oklch(0.02 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.05 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.05 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.82 0.22 145);
+  --primary-foreground: oklch(0.05 0.05 145);
+  --primary-hover: oklch(0.88 0.2 145);
+  --primary-soft: oklch(0.82 0.22 145 / 0.12);
+  --primary-soft-2: oklch(0.82 0.22 145 / 0.22);
+  --secondary: oklch(0.12 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.12 0 0);
+  --muted-foreground: oklch(0.6 0 0);
+  --accent: oklch(0.12 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.18 0 0);
+  --input: oklch(0.18 0 0);
+  --ring: oklch(0.82 0.22 145);
+  --chart-1: oklch(0.82 0.22 145);
+  --chart-2: oklch(0.5 0 0);
+  --chart-3: oklch(0.4 0 0);
+  --chart-4: oklch(0.3 0 0);
+  --chart-5: oklch(0.2 0 0);
+  --radius: 0.4rem;
+  --sidebar: oklch(0.04 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.82 0.22 145);
+  --sidebar-primary-foreground: oklch(0.05 0.05 145);
+  --sidebar-accent: oklch(0.1 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(0.15 0 0);
+  --sidebar-ring: oklch(0.82 0.22 145);
+}
+
+html[data-theme="daylight"] {
+  --background: oklch(0.995 0 0);
+  --foreground: oklch(0.1 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.1 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.1 0 0);
+  --primary: oklch(0.65 0.22 145);
+  --primary-foreground: oklch(0.99 0 0);
+  --primary-hover: oklch(0.6 0.22 145);
+  --primary-soft: oklch(0.65 0.22 145 / 0.1);
+  --primary-soft-2: oklch(0.65 0.22 145 / 0.18);
+  --secondary: oklch(0.96 0 0);
+  --secondary-foreground: oklch(0.1 0 0);
+  --muted: oklch(0.96 0 0);
+  --muted-foreground: oklch(0.45 0 0);
+  --accent: oklch(0.96 0 0);
+  --accent-foreground: oklch(0.1 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.92 0 0);
+  --input: oklch(0.92 0 0);
+  --ring: oklch(0.65 0.22 145);
+  --chart-1: oklch(0.65 0.22 145);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --radius: 0.4rem;
+  --sidebar: oklch(0.98 0 0);
+  --sidebar-foreground: oklch(0.1 0 0);
+  --sidebar-primary: oklch(0.65 0.22 145);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.94 0 0);
+  --sidebar-accent-foreground: oklch(0.1 0 0);
+  --sidebar-border: oklch(0.92 0 0);
+  --sidebar-ring: oklch(0.65 0.22 145);
+}
+
 html[data-theme="violet"] {
   --background: oklch(0.13 0.01 260);
   --foreground: oklch(0.985 0 0);

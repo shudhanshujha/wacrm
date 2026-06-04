@@ -14,6 +14,8 @@
  */
 
 export const THEME_IDS = [
+  "midnight",
+  "daylight",
   "violet",
   "emerald",
   "cobalt",
@@ -23,7 +25,7 @@ export const THEME_IDS = [
 
 export type ThemeId = (typeof THEME_IDS)[number];
 
-export const DEFAULT_THEME: ThemeId = "violet";
+export const DEFAULT_THEME: ThemeId = "midnight";
 
 export const STORAGE_KEY = "wacrm.theme";
 
@@ -42,9 +44,21 @@ export interface ThemeMeta {
 
 export const THEMES: ReadonlyArray<ThemeMeta> = [
   {
+    id: "midnight",
+    name: "Midnight",
+    tagline: "Modern tech look — deep black with vibrant green accents.",
+    swatch: "oklch(0.8 0.18 145)",
+  },
+  {
+    id: "daylight",
+    name: "Daylight",
+    tagline: "Clean and minimalist light mode with tech green.",
+    swatch: "oklch(0.6 0.2 145)",
+  },
+  {
     id: "violet",
     name: "Violet",
-    tagline: "The default — confident, slightly playful.",
+    tagline: "The original default — confident, slightly playful.",
     swatch: "oklch(0.526 0.247 293)",
   },
   {
