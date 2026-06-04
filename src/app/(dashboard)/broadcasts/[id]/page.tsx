@@ -32,12 +32,15 @@ import {
   Download,
   ChevronDown,
   Trash2,
+  RefreshCw,
+  MousePointerClick,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   getBroadcastStatus,
   getRecipientStatus,
 } from '@/lib/broadcast-status';
+import { RetargetModal } from '@/components/broadcasts/retarget-modal';
 
 interface StatCardProps {
   label: string;
@@ -155,6 +158,7 @@ export default function BroadcastDetailPage() {
   );
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [retargetOpen, setRetargetOpen] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -189,10 +193,13 @@ export default function BroadcastDetailPage() {
   }, [broadcastId]);
 
   const filteredRecipients = useMemo(
-    () =>
-      statusFilter === 'all'
-        ? recipients
-        : recipients.filter((r) => r.status === statusFilter),
+    () => {
+      if (statusFilter === 'all') return recipients;
+      if ((statusFilter as string) === 'clicked') {
+        return recipients.filter((r) => (r.click_count ?? 0) > 0);
+      }
+      return recipients.filter((r) => r.status === statusFilter);
+    },
     [recipients, statusFilter],
   );
 
@@ -268,6 +275,7 @@ export default function BroadcastDetailPage() {
     { label: 'Sent', value: broadcast.sent_count, color: 'bg-primary' },
     { label: 'Delivered', value: broadcast.delivered_count, color: 'bg-teal-500' },
     { label: 'Read', value: broadcast.read_count, color: 'bg-blue-500' },
+    { label: 'Clicked', value: broadcast.clicked_count ?? 0, color: 'bg-purple-500' },
     { label: 'Replied', value: broadcast.replied_count, color: 'bg-indigo-500' },
   ];
 
@@ -347,8 +355,8 @@ export default function BroadcastDetailPage() {
         )}
       </div>
 
-      {/* Stats — 6 cards: Total / Sent / Delivered / Read / Replied / Failed */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      {/* Stats — 7 cards: Total / Sent / Delivered / Read / Clicked / Replied / Failed */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
         <StatCard
           label="Total Recipients"
           value={broadcast.total_recipients}
@@ -376,6 +384,13 @@ export default function BroadcastDetailPage() {
           total={broadcast.total_recipients}
           icon={<Eye className="h-4 w-4" />}
           color="bg-blue-500/10 text-blue-400"
+        />
+        <StatCard
+          label="Clicked"
+          value={broadcast.clicked_count ?? 0}
+          total={broadcast.total_recipients}
+          icon={<MousePointerClick className="h-4 w-4" />}
+          color="bg-purple-500/10 text-purple-400"
         />
         <StatCard
           label="Replied"
@@ -428,6 +443,16 @@ export default function BroadcastDetailPage() {
                 >
                   All statuses
                 </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setStatusFilter('clicked' as any)}
+                  className={
+                    (statusFilter as string) === 'clicked'
+                      ? 'text-primary'
+                      : 'text-muted-foreground'
+                  }
+                >
+                  Clicked
+                </DropdownMenuItem>
                 {RECIPIENT_STATUSES.map((s) => (
                   <DropdownMenuItem
                     key={s}
@@ -454,6 +479,18 @@ export default function BroadcastDetailPage() {
               <Download className="h-3.5 w-3.5" />
               Export CSV
             </Button>
+
+            {broadcast.status === 'sent' && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setRetargetOpen(true)}
+                className="border-border text-muted-foreground hover:bg-accent"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Retarget
+              </Button>
+            )}
           </div>
         </div>
 
@@ -523,6 +560,21 @@ export default function BroadcastDetailPage() {
           </div>
         )}
       </div>
+
+      <RetargetModal
+        broadcastId={broadcast.id}
+        broadcastName={broadcast.name}
+        stats={{
+          delivered: broadcast.delivered_count,
+          read: broadcast.read_count,
+          replied: broadcast.replied_count,
+          clicked: 0,
+          failed: broadcast.failed_count,
+          total: broadcast.total_recipients,
+        }}
+        open={retargetOpen}
+        onClose={() => setRetargetOpen(false)}
+      />
     </div>
   );
 }

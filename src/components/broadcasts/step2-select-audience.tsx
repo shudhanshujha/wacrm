@@ -13,10 +13,14 @@ import {
   ArrowRight,
   ArrowLeft,
   X,
+  Sliders,
+  PlusCircle,
+  Trash2,
 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-type AudienceType = 'all' | 'tags' | 'custom_field' | 'csv';
-type CustomFieldOperator = 'is' | 'is_not' | 'contains';
+type AudienceType = 'all' | 'tags' | 'custom_field' | 'csv' | 'custom_segment' | 'multi_condition';
+type CustomFieldOperator = 'is' | 'is_not' | 'contains' | 'is_set' | 'is_not_set';
 
 interface CustomFieldFilter {
   fieldId: string;
@@ -24,11 +28,27 @@ interface CustomFieldFilter {
   value: string;
 }
 
+export interface AudienceCondition {
+  id: string;
+  type: 'tag' | 'custom_field' | 'contact_field';
+  tagId?: string;
+  tagOperator?: 'has' | 'does_not_have';
+  customFieldId?: string;
+  customFieldOperator?: CustomFieldOperator;
+  customFieldValue?: string;
+  contactField?: 'name' | 'email' | 'company' | 'phone';
+  contactFieldOperator?: 'is_set' | 'is_not_set' | 'contains';
+  contactFieldValue?: string;
+}
+
 interface AudienceConfig {
   type: AudienceType;
   tagIds?: string[];
   customField?: CustomFieldFilter;
   csvContacts?: { phone: string; name?: string }[];
+  segmentContactIds?: string[];
+  conditions?: AudienceCondition[];
+  conditionLogic?: 'AND' | 'OR';
   excludeTagIds?: string[];
 }
 
@@ -64,6 +84,12 @@ const audienceOptions: {
     icon: Filter,
   },
   {
+    type: 'multi_condition',
+    label: 'Advanced Filter',
+    description: 'Combine multiple tag and attribute conditions',
+    icon: Sliders,
+  },
+  {
     type: 'csv',
     label: 'Upload CSV',
     description: 'Upload a list of phone numbers',
@@ -90,25 +116,18 @@ export function Step2SelectAudience({
   const [estimatedCount, setEstimatedCount] = useState<number | null>(null);
   const [loadingCount, setLoadingCount] = useState(false);
 
-  // Tags are used both by the primary "Filter by Tags" audience type
-  // AND by the exclude-list below — so always load once on mount.
-  useEffect(() => {
-    async function fetchTags() {
-      setLoadingTags(true);
-      try {
-        const supabase = createClient();
-        const { data } = await supabase.from('tags').select('*').order('name');
-        setTags(data ?? []);
-      } finally {
-        setLoadingTags(false);
-      }
-    }
-    fetchTags();
-  }, []);
+  const [conditions, setConditions] = useState<AudienceCondition[]>(
+    audience.conditions ?? [
+      { id: Math.random().toString(36).slice(2, 9), type: 'tag', tagOperator: 'has' },
+    ],
+  );
+  const [conditionLogic, setConditionLogic] = useState<'AND' | 'OR'>(
+    audience.conditionLogic ?? 'AND',
+  );
 
-  // Lazy-load custom fields only when that audience type is active.
+  // Load custom fields if multi_condition is selected too
   useEffect(() => {
-    if (audience.type !== 'custom_field') return;
+    if (audience.type !== 'custom_field' && audience.type !== 'multi_condition') return;
     async function fetchFields() {
       setLoadingFields(true);
       try {
@@ -134,7 +153,7 @@ export function Step2SelectAudience({
       let baseIds: Set<string> | null = null; // null means "all contacts"
 
       if (audience.type === 'all') {
-        // Handled below — full-table count adjusted by excludes.
+        // Handled below
       } else if (
         audience.type === 'tags' &&
         audience.tagIds &&
@@ -157,7 +176,7 @@ export function Step2SelectAudience({
           .eq('custom_field_id', fieldId);
         if (operator === 'is') q = q.eq('value', value);
         else if (operator === 'is_not') q = q.neq('value', value);
-        else q = q.ilike('value', `%${value}%`);
+        else if (operator === 'contains') q = q.ilike('value', `%${value}%`);
         const { data } = await q;
         baseIds = new Set((data ?? []).map((r) => r.contact_id));
       } else if (
@@ -167,8 +186,55 @@ export function Step2SelectAudience({
       ) {
         setEstimatedCount(audience.csvContacts.length);
         return;
+      } else if (audience.type === 'custom_segment') {
+        baseIds = new Set(audience.segmentContactIds ?? []);
+      } else if (audience.type === 'multi_condition') {
+        // Client-side multi-condition estimation
+        const { data: allContacts } = await supabase.from('contacts').select('id, name, email, company, phone');
+        const { data: allTags } = await supabase.from('contact_tags').select('contact_id, tag_id');
+        const { data: allCustomValues } = await supabase.from('contact_custom_values').select('contact_id, custom_field_id, value');
+
+        const tagsByContact = new Map<string, Set<string>>();
+        for (const ct of allTags ?? []) {
+          const s = tagsByContact.get(ct.contact_id) ?? new Set();
+          s.add(ct.tag_id);
+          tagsByContact.set(ct.contact_id, s);
+        }
+
+        const customValuesByContact = new Map<string, Map<string, string>>();
+        for (const cv of allCustomValues ?? []) {
+          const m = customValuesByContact.get(cv.contact_id) ?? new Map();
+          m.set(cv.custom_field_id, cv.value ?? '');
+          customValuesByContact.set(cv.contact_id, m);
+        }
+
+        const filtered = (allContacts ?? []).filter(contact => {
+          const results = conditions.map(cond => {
+            if (cond.type === 'tag' && cond.tagId) {
+              const hasTags = tagsByContact.get(contact.id)?.has(cond.tagId) ?? false;
+              return cond.tagOperator === 'has' ? hasTags : !hasTags;
+            }
+            if (cond.type === 'custom_field' && cond.customFieldId) {
+              const val = customValuesByContact.get(contact.id)?.get(cond.customFieldId) ?? '';
+              if (cond.customFieldOperator === 'is_set') return val !== '';
+              if (cond.customFieldOperator === 'is_not_set') return val === '';
+              if (cond.customFieldOperator === 'is') return val === (cond.customFieldValue ?? '');
+              if (cond.customFieldOperator === 'is_not') return val !== (cond.customFieldValue ?? '');
+              if (cond.customFieldOperator === 'contains') return val.toLowerCase().includes((cond.customFieldValue ?? '').toLowerCase());
+            }
+            if (cond.type === 'contact_field' && cond.contactField) {
+              const fieldMap: Record<string, string | undefined> = { name: contact.name, email: contact.email, company: contact.company, phone: contact.phone };
+              const val = fieldMap[cond.contactField] ?? '';
+              if (cond.contactFieldOperator === 'is_set') return val !== '';
+              if (cond.contactFieldOperator === 'is_not_set') return val === '';
+              if (cond.contactFieldOperator === 'contains') return val.toLowerCase().includes((cond.contactFieldValue ?? '').toLowerCase());
+            }
+            return true;
+          });
+          return conditionLogic === 'AND' ? results.every(Boolean) : results.some(Boolean);
+        });
+        baseIds = new Set(filtered.map(c => c.id));
       } else {
-        // Partially-configured audience — wait for the user to finish.
         setEstimatedCount(null);
         return;
       }
@@ -244,7 +310,34 @@ export function Step2SelectAudience({
       audience.customField.value.length > 0) ||
     (audience.type === 'csv' &&
       audience.csvContacts &&
-      audience.csvContacts.length > 0);
+      audience.csvContacts.length > 0) ||
+    (audience.type === 'custom_segment' &&
+      audience.segmentContactIds &&
+      audience.segmentContactIds.length > 0) ||
+    (audience.type === 'multi_condition' && conditions.length > 0);
+
+  function addCondition() {
+    const newConditions = [
+      ...conditions,
+      { id: Math.random().toString(36).slice(2, 9), type: 'tag' as const, tagOperator: 'has' as const },
+    ];
+    setConditions(newConditions);
+    onUpdate({ ...audience, conditions: newConditions, conditionLogic });
+  }
+
+  function removeCondition(id: string) {
+    const newConditions = conditions.filter((c) => c.id !== id);
+    setConditions(newConditions);
+    onUpdate({ ...audience, conditions: newConditions, conditionLogic });
+  }
+
+  function updateCondition(id: string, patch: Partial<AudienceCondition>) {
+    const newConditions = conditions.map((c) =>
+      c.id === id ? { ...c, ...patch } : c,
+    );
+    setConditions(newConditions);
+    onUpdate({ ...audience, conditions: newConditions, conditionLogic });
+  }
 
   return (
     <div className="space-y-6">
@@ -255,53 +348,258 @@ export function Step2SelectAudience({
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {audienceOptions.map((option) => {
-          const isSelected = audience.type === option.type;
-          const Icon = option.icon;
-          return (
-            <button
-              key={option.type}
-              onClick={() =>
-                onUpdate({
-                  ...audience,
-                  type: option.type,
-                  // Wipe shape fields from other types to avoid stale
-                  // config leaking across selections.
-                  tagIds: option.type === 'tags' ? audience.tagIds : undefined,
-                  customField:
-                    option.type === 'custom_field'
-                      ? audience.customField
-                      : undefined,
-                  csvContacts:
-                    option.type === 'csv' ? audience.csvContacts : undefined,
-                })
-              }
-              className={`flex items-start gap-3 rounded-xl border p-4 text-left transition-all ${
-                isSelected
-                  ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
-                  : 'border-slate-800 bg-slate-900/50 hover:border-slate-700'
-              }`}
-            >
-              <div
-                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+      {audience.type === 'custom_segment' ? (
+        <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 flex items-start gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <Users className="h-4 w-4" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-white">Retarget Audience</p>
+            <p className="mt-1 text-xs text-slate-400">
+              {audience.segmentContactIds?.length ?? 0} contacts pre-selected from a previous broadcast.
+            </p>
+            <p className="mt-2 text-[10px] text-slate-500 italic">
+              To change the audience, start a new broadcast.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {audienceOptions.map((option) => {
+            const isSelected = audience.type === option.type;
+            const Icon = option.icon;
+            return (
+              <button
+                key={option.type}
+                onClick={() =>
+                  onUpdate({
+                    ...audience,
+                    type: option.type,
+                    // Wipe shape fields from other types to avoid stale
+                    // config leaking across selections.
+                    tagIds: option.type === 'tags' ? audience.tagIds : undefined,
+                    customField:
+                      option.type === 'custom_field'
+                        ? audience.customField
+                        : undefined,
+                    csvContacts:
+                      option.type === 'csv' ? audience.csvContacts : undefined,
+                    conditions: option.type === 'multi_condition' ? conditions : undefined,
+                    conditionLogic: option.type === 'multi_condition' ? conditionLogic : undefined,
+                  })
+                }
+                className={`flex items-start gap-3 rounded-xl border p-4 text-left transition-all ${
                   isSelected
-                    ? 'bg-primary/10 text-primary'
-                    : 'bg-slate-800 text-slate-400'
+                    ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
+                    : 'border-slate-800 bg-slate-900/50 hover:border-slate-700'
                 }`}
               >
-                <Icon className="h-4 w-4" />
+                <div
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+                    isSelected
+                      ? 'bg-primary/10 text-primary'
+                      : 'bg-slate-800 text-slate-400'
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-white">{option.label}</p>
+                  <p className="mt-0.5 text-xs text-slate-400">
+                    {option.description}
+                  </p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {audience.type === 'multi_condition' && (
+        <div className="space-y-4 rounded-xl border border-slate-800 bg-slate-900/50 p-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-white">Advanced Filter Builder</p>
+            <div className="flex rounded-lg border border-slate-700 bg-slate-800 p-1">
+              <button
+                onClick={() => {
+                  setConditionLogic('AND');
+                  onUpdate({ ...audience, conditionLogic: 'AND' });
+                }}
+                className={`rounded-md px-3 py-1 text-xs font-medium transition-all ${
+                  conditionLogic === 'AND'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Match ALL (AND)
+              </button>
+              <button
+                onClick={() => {
+                  setConditionLogic('OR');
+                  onUpdate({ ...audience, conditionLogic: 'OR' });
+                }}
+                className={`rounded-md px-3 py-1 text-xs font-medium transition-all ${
+                  conditionLogic === 'OR'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Match ANY (OR)
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {conditions.map((cond, idx) => (
+              <div key={cond.id} className="group relative flex flex-wrap items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/30 p-3 pr-10">
+                <Select
+                  value={cond.type}
+                  onValueChange={(val: any) => val && updateCondition(cond.id, { type: val })}
+                >
+                  <SelectTrigger className="h-9 w-[130px] border-slate-700 bg-slate-800 text-xs text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="border-slate-700 bg-slate-900 text-white">
+                    <SelectItem value="tag">Tag</SelectItem>
+                    <SelectItem value="custom_field">Custom Field</SelectItem>
+                    <SelectItem value="contact_field">Contact Field</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {cond.type === 'tag' && (
+                  <>
+                    <Select
+                      value={cond.tagOperator ?? 'has'}
+                      onValueChange={(val: any) => val && updateCondition(cond.id, { tagOperator: val })}
+                    >
+                      <SelectTrigger className="h-9 w-[120px] border-slate-700 bg-slate-800 text-xs text-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="border-slate-700 bg-slate-900 text-white">
+                        <SelectItem value="has">has</SelectItem>
+                        <SelectItem value="does_not_have">does not have</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={cond.tagId ?? ''}
+                      onValueChange={(val) => val && updateCondition(cond.id, { tagId: val })}
+                    >
+                      <SelectTrigger className="h-9 flex-1 border-slate-700 bg-slate-800 text-xs text-white">
+                        <SelectValue placeholder="Select tag..." />
+                      </SelectTrigger>
+                      <SelectContent className="border-slate-700 bg-slate-900 text-white">
+                        {tags.map(t => (
+                          <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </>
+                )}
+
+                {cond.type === 'custom_field' && (
+                  <>
+                    <Select
+                      value={cond.customFieldId ?? ''}
+                      onValueChange={(val) => val && updateCondition(cond.id, { customFieldId: val })}
+                    >
+                      <SelectTrigger className="h-9 w-[140px] border-slate-700 bg-slate-800 text-xs text-white">
+                        <SelectValue placeholder="Select field..." />
+                      </SelectTrigger>
+                      <SelectContent className="border-slate-700 bg-slate-900 text-white">
+                        {customFields.map(f => (
+                          <SelectItem key={f.id} value={f.id}>{f.field_name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={cond.customFieldOperator ?? 'is'}
+                      onValueChange={(val: any) => val && updateCondition(cond.id, { customFieldOperator: val })}
+                    >
+                      <SelectTrigger className="h-9 w-[110px] border-slate-700 bg-slate-800 text-xs text-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="border-slate-700 bg-slate-900 text-white">
+                        <SelectItem value="is">is</SelectItem>
+                        <SelectItem value="is_not">is not</SelectItem>
+                        <SelectItem value="contains">contains</SelectItem>
+                        <SelectItem value="is_set">is set</SelectItem>
+                        <SelectItem value="is_not_set">is not set</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {!['is_set', 'is_not_set'].includes(cond.customFieldOperator ?? '') && (
+                      <input
+                        type="text"
+                        value={cond.customFieldValue ?? ''}
+                        onChange={(e) => updateCondition(cond.id, { customFieldValue: e.target.value })}
+                        placeholder="Value"
+                        className="h-9 flex-1 rounded-md border border-slate-700 bg-slate-800 px-3 text-xs text-white outline-none focus:ring-1 focus:ring-primary"
+                      />
+                    )}
+                  </>
+                )}
+
+                {cond.type === 'contact_field' && (
+                  <>
+                    <Select
+                      value={cond.contactField ?? 'name'}
+                      onValueChange={(val: any) => val && updateCondition(cond.id, { contactField: val })}
+                    >
+                      <SelectTrigger className="h-9 w-[110px] border-slate-700 bg-slate-800 text-xs text-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="border-slate-700 bg-slate-900 text-white">
+                        <SelectItem value="name">Name</SelectItem>
+                        <SelectItem value="email">Email</SelectItem>
+                        <SelectItem value="company">Company</SelectItem>
+                        <SelectItem value="phone">Phone</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={cond.contactFieldOperator ?? 'contains'}
+                      onValueChange={(val: any) => val && updateCondition(cond.id, { contactFieldOperator: val })}
+                    >
+                      <SelectTrigger className="h-9 w-[110px] border-slate-700 bg-slate-800 text-xs text-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="border-slate-700 bg-slate-900 text-white">
+                        <SelectItem value="contains">contains</SelectItem>
+                        <SelectItem value="is_set">is set</SelectItem>
+                        <SelectItem value="is_not_set">is not set</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {!['is_set', 'is_not_set'].includes(cond.contactFieldOperator ?? '') && (
+                      <input
+                        type="text"
+                        value={cond.contactFieldValue ?? ''}
+                        onChange={(e) => updateCondition(cond.id, { contactFieldValue: e.target.value })}
+                        placeholder="Value"
+                        className="h-9 flex-1 rounded-md border border-slate-700 bg-slate-800 px-3 text-xs text-white outline-none focus:ring-1 focus:ring-primary"
+                      />
+                    )}
+                  </>
+                )}
+
+                <button
+                  onClick={() => removeCondition(cond.id)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-red-400 transition-colors"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
               </div>
-              <div>
-                <p className="text-sm font-medium text-white">{option.label}</p>
-                <p className="mt-0.5 text-xs text-slate-400">
-                  {option.description}
-                </p>
-              </div>
-            </button>
-          );
-        })}
-      </div>
+            ))}
+          </div>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={addCondition}
+            className="w-full border-dashed border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-white"
+          >
+            <PlusCircle className="h-3.5 w-3.5" />
+            Add Condition
+          </Button>
+        </div>
+      )}
 
       {audience.type === 'tags' && (
         <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">

@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { MessageTemplate } from '@/types';
@@ -21,43 +21,99 @@ const steps = [
 
 export default function NewBroadcastContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { createAndSendBroadcast, isProcessing, progress } = useBroadcastSending();
+
+  const isRetarget = searchParams.get('retarget') === 'true';
+  const retargetName = searchParams.get('name') ?? '';
+  const retargetContactIds = searchParams.get('contactIds')?.split(',').filter(Boolean) ?? [];
 
   const [currentStep, setCurrentStep] = useState(0);
   const [template, setTemplate] = useState<MessageTemplate | null>(null);
   const [audience, setAudience] = useState<{
-    type: 'all' | 'tags' | 'custom_field' | 'csv';
+    type: 'all' | 'tags' | 'custom_field' | 'csv' | 'custom_segment' | 'multi_condition';
     tagIds?: string[];
     customField?: {
       fieldId: string;
-      operator: 'is' | 'is_not' | 'contains';
+      operator: 'is' | 'is_not' | 'contains' | 'is_set' | 'is_not_set';
       value: string;
     };
     csvContacts?: { phone: string; name?: string }[];
     excludeTagIds?: string[];
-  }>({ type: 'all' });
+    segmentContactIds?: string[];
+    conditions?: any[];
+    conditionLogic?: 'AND' | 'OR';
+  }>(
+    isRetarget
+      ? { type: 'custom_segment', segmentContactIds: retargetContactIds }
+      : { type: 'all' }
+  );
   const [variables, setVariables] = useState<
     Record<string, { type: 'static' | 'field' | 'custom_field'; value: string }>
   >({});
-  const [name, setName] = useState('');
+  const [name, setName] = useState(isRetarget ? retargetName : '');
+  const [scheduledAt, setScheduledAt] = useState<Date | null>(null);
 
   async function handleSend() {
     if (!template) return;
 
     try {
-      const broadcastId = await createAndSendBroadcast({
-        name,
-        template,
-        audience: {
-          type: audience.type,
-          tagIds: audience.tagIds,
-          customField: audience.customField,
-          csvContacts: audience.csvContacts,
-          excludeTagIds: audience.excludeTagIds,
-        },
-        variables,
-      });
-      router.push(`/broadcasts/${broadcastId}`);
+      if (scheduledAt) {
+        // Handle scheduling
+        const supabase = createClient();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        const user = session?.user;
+        if (!user) {
+          toast.error('Not signed in.');
+          return;
+        }
+
+        const { error } = await supabase.from('broadcasts').insert({
+          user_id: user.id,
+          name: name.trim(),
+          template_name: template.name,
+          template_language: template.language ?? 'en_US',
+          template_variables: variables,
+          audience_filter: {
+            type: audience.type,
+            tagIds: audience.tagIds,
+            customField: audience.customField,
+            excludeTagIds: audience.excludeTagIds,
+          },
+          status: 'scheduled',
+          scheduled_at: scheduledAt.toISOString(),
+          total_recipients: 0, // Will be resolved at send time by worker/engine
+          sent_count: 0,
+          delivered_count: 0,
+          read_count: 0,
+          replied_count: 0,
+          failed_count: 0,
+        });
+
+        if (error) {
+          toast.error(`Failed to schedule broadcast: ${error.message}`);
+          return;
+        }
+
+        toast.success('Broadcast scheduled');
+        router.push('/broadcasts');
+      } else {
+        // Send immediately
+        const broadcastId = await createAndSendBroadcast({
+          name,
+          template,
+          audience: {
+            type: audience.type,
+            tagIds: audience.tagIds,
+            customField: audience.customField,
+            excludeTagIds: audience.excludeTagIds,
+          },
+          variables,
+        });
+        router.push(`/broadcasts/${broadcastId}`);
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Broadcast failed';
       console.error('Broadcast failed:', err);
@@ -202,6 +258,8 @@ export default function NewBroadcastContent() {
               onBack={() => setCurrentStep(2)}
               isProcessing={isProcessing}
               progress={progress}
+              scheduledAt={scheduledAt}
+              onScheduledAtChange={setScheduledAt}
             />
           )}
         </div>

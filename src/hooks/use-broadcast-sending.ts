@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Contact, MessageTemplate } from '@/types';
 
-export type CustomFieldOperator = 'is' | 'is_not' | 'contains';
+export type CustomFieldOperator = 'is' | 'is_not' | 'contains' | 'is_set' | 'is_not_set';
 
 export interface CustomFieldFilter {
   fieldId: string;
@@ -12,11 +12,30 @@ export interface CustomFieldFilter {
   value: string;
 }
 
+export interface AudienceCondition {
+  id: string; // local UUID for React key, not persisted
+  type: 'tag' | 'custom_field' | 'contact_field';
+  // For type='tag':
+  tagId?: string;
+  tagOperator?: 'has' | 'does_not_have';
+  // For type='custom_field':
+  customFieldId?: string;
+  customFieldOperator?: 'is' | 'is_not' | 'contains' | 'is_set' | 'is_not_set';
+  customFieldValue?: string;
+  // For type='contact_field':
+  contactField?: 'name' | 'email' | 'company' | 'phone';
+  contactFieldOperator?: 'is_set' | 'is_not_set' | 'contains';
+  contactFieldValue?: string;
+}
+
 export interface AudienceConfig {
-  type: 'all' | 'tags' | 'custom_field' | 'csv';
+  type: 'all' | 'tags' | 'custom_field' | 'csv' | 'custom_segment' | 'multi_condition';
   tagIds?: string[];
   customField?: CustomFieldFilter;
   csvContacts?: { phone: string; name?: string }[];
+  segmentContactIds?: string[];
+  conditions?: AudienceCondition[];
+  conditionLogic?: 'AND' | 'OR';
   /** Contacts carrying any of these tags are subtracted from the result. */
   excludeTagIds?: string[];
 }
@@ -180,7 +199,33 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
       contacts = await resolveCustomFieldAudience(supabase, audience.customField);
     } else if (audience.type === 'csv' && audience.csvContacts) {
       contacts = await upsertCsvContacts(supabase, audience.csvContacts);
+    } else if (
+      audience.type === 'custom_segment' &&
+      audience.segmentContactIds &&
+      audience.segmentContactIds.length > 0
+    ) {
+      const { data, error } = await supabase
+        .from('contacts')
+        .select('*')
+        .in('id', audience.segmentContactIds);
+      if (error) throw new Error(`Failed to fetch segment contacts: ${error.message}`);
+      contacts = data ?? [];
+    } else if (
+      audience.type === 'multi_condition' &&
+      audience.conditions &&
+      audience.conditions.length > 0
+    ) {
+      contacts = await resolveMultiConditionAudience(
+        supabase,
+        audience.conditions,
+        audience.conditionLogic ?? 'AND',
+      );
     }
+
+    // Always exclude opted-out contacts from broadcasts
+    contacts = contacts.filter(
+      (c) => !(c as Contact & { whatsapp_opted_out?: boolean }).whatsapp_opted_out,
+    );
 
     // Apply exclude tags (works across all contact-derived audience
     // types). CSV contacts are synthetic so exclusion doesn't apply.
@@ -541,4 +586,81 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
   }
 
   return { createAndSendBroadcast, isProcessing, progress };
+}
+
+async function resolveMultiConditionAudience(
+  supabase: ReturnType<typeof createClient>,
+  conditions: AudienceCondition[],
+  logic: 'AND' | 'OR',
+): Promise<Contact[]> {
+  const { data: allContacts, error } = await supabase.from('contacts').select('*');
+  if (error) throw new Error(`Failed to fetch contacts: ${error.message}`);
+  const contacts = allContacts ?? [];
+
+  const { data: allTags } = await supabase
+    .from('contact_tags')
+    .select('contact_id, tag_id');
+  const { data: allCustomValues } = await supabase
+    .from('contact_custom_values')
+    .select('contact_id, custom_field_id, value');
+
+  const tagsByContact = new Map<string, Set<string>>();
+  for (const ct of allTags ?? []) {
+    const s = tagsByContact.get(ct.contact_id) ?? new Set();
+    s.add(ct.tag_id);
+    tagsByContact.set(ct.contact_id, s);
+  }
+
+  const customValuesByContact = new Map<string, Map<string, string>>();
+  for (const cv of allCustomValues ?? []) {
+    const m = customValuesByContact.get(cv.contact_id) ?? new Map();
+    m.set(cv.custom_field_id, cv.value ?? '');
+    customValuesByContact.set(cv.contact_id, m);
+  }
+
+  return contacts.filter((contact) => {
+    const results = conditions.map((cond) =>
+      evaluateCondition(cond, contact, tagsByContact, customValuesByContact),
+    );
+    return logic === 'AND' ? results.every(Boolean) : results.some(Boolean);
+  });
+}
+
+function evaluateCondition(
+  cond: AudienceCondition,
+  contact: Contact,
+  tagsByContact: Map<string, Set<string>>,
+  customValuesByContact: Map<string, Map<string, string>>,
+): boolean {
+  if (cond.type === 'tag' && cond.tagId) {
+    const hasTags = tagsByContact.get(contact.id)?.has(cond.tagId) ?? false;
+    return cond.tagOperator === 'has' ? hasTags : !hasTags;
+  }
+  if (cond.type === 'custom_field' && cond.customFieldId) {
+    const val = customValuesByContact.get(contact.id)?.get(cond.customFieldId) ?? '';
+    if (cond.customFieldOperator === 'is_set') return val !== '';
+    if (cond.customFieldOperator === 'is_not_set') return val === '';
+    if (cond.customFieldOperator === 'is') return val === (cond.customFieldValue ?? '');
+    if (cond.customFieldOperator === 'is_not') return val !== (cond.customFieldValue ?? '');
+    if (cond.customFieldOperator === 'contains')
+      return val
+        .toLowerCase()
+        .includes((cond.customFieldValue ?? '').toLowerCase());
+  }
+  if (cond.type === 'contact_field' && cond.contactField) {
+    const fieldMap: Record<string, string | undefined> = {
+      name: contact.name,
+      email: contact.email,
+      company: contact.company,
+      phone: contact.phone,
+    };
+    const val = fieldMap[cond.contactField] ?? '';
+    if (cond.contactFieldOperator === 'is_set') return val !== '';
+    if (cond.contactFieldOperator === 'is_not_set') return val === '';
+    if (cond.contactFieldOperator === 'contains')
+      return val
+        .toLowerCase()
+        .includes((cond.contactFieldValue ?? '').toLowerCase());
+  }
+  return true;
 }

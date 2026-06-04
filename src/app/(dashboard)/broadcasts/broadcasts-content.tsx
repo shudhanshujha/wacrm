@@ -205,8 +205,10 @@ export default function BroadcastsContent() {
                 </TableHead>
                 <TableHead className="hidden text-muted-foreground lg:table-cell">Delivery</TableHead>
                 <TableHead className="hidden text-muted-foreground lg:table-cell">Read</TableHead>
+                <TableHead className="hidden text-muted-foreground xl:table-cell">Clicked</TableHead>
                 <TableHead className="text-muted-foreground">Status</TableHead>
                 <TableHead className="hidden text-muted-foreground sm:table-cell">Date</TableHead>
+                <TableHead className="hidden text-muted-foreground md:table-cell">Scheduled For</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -241,6 +243,13 @@ export default function BroadcastsContent() {
                         color="bg-blue-500"
                       />
                     </TableCell>
+                    <TableCell className="hidden xl:table-cell">
+                      <RateCell
+                        value={broadcast.clicked_count ?? 0}
+                        total={broadcast.total_recipients}
+                        color="bg-purple-500"
+                      />
+                    </TableCell>
                     <TableCell>
                       <span
                         className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium ${status.classes}`}
@@ -256,6 +265,9 @@ export default function BroadcastsContent() {
                     </TableCell>
                     <TableCell className="hidden text-muted-foreground sm:table-cell">
                       {new Date(broadcast.created_at).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="hidden text-muted-foreground md:table-cell">
+                      {broadcast.scheduled_at ? new Date(broadcast.scheduled_at).toLocaleString() : '-'}
                     </TableCell>
                   </TableRow>
                 );

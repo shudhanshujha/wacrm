@@ -575,6 +575,24 @@ async function processMessage(
   // trigger installed in migration 003).
   await flagBroadcastReplyIfAny(userId, contactRecord.id)
 
+  // ── Opt-out / opt-in keyword detection ───────────────────────────────
+  const STOP_KEYWORDS = new Set(['stop', 'unsubscribe', 'cancel', 'quit', 'end', 'opt out', 'optout'])
+  const START_KEYWORDS = new Set(['start', 'subscribe', 'yes', 'opt in', 'optin'])
+
+  const msgLower = (contentText ?? '').trim().toLowerCase()
+
+  if (STOP_KEYWORDS.has(msgLower)) {
+    await supabaseAdmin()
+      .from('contacts')
+      .update({ whatsapp_opted_out: true, opted_out_at: new Date().toISOString() })
+      .eq('id', contactRecord.id)
+  } else if (START_KEYWORDS.has(msgLower) ) {
+    await supabaseAdmin()
+      .from('contacts')
+      .update({ whatsapp_opted_out: false, opted_in_at: new Date().toISOString() })
+      .eq('id', contactRecord.id)
+  }
+
   // ============================================================
   // Flow runner dispatch.
   //

@@ -24,6 +24,9 @@ export interface Contact {
   email?: string;
   company?: string;
   avatar_url?: string;
+  whatsapp_opted_out?: boolean;
+  opted_out_at?: string;
+  opted_in_at?: string;
   created_at: string;
   updated_at: string;
 }
@@ -217,6 +220,7 @@ export interface Broadcast {
   read_count: number;
   replied_count: number;
   failed_count: number;
+  clicked_count: number;
   created_at: string;
 }
 
@@ -234,6 +238,8 @@ export interface BroadcastRecipient {
   delivered_at?: string;
   read_at?: string;
   replied_at?: string;
+  clicked_at?: string;
+  click_count?: number;
   error_message?: string;
   /**
    * Meta's message id, persisted when the broadcast send succeeds so

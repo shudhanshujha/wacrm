@@ -40,6 +40,7 @@ import {
   Users,
   ChevronLeft,
   ChevronRight,
+  Ban,
 } from 'lucide-react';
 import { ContactForm } from '@/components/contacts/contact-form';
 import { ContactDetailView } from '@/components/contacts/contact-detail-view';
@@ -59,6 +60,7 @@ export default function ContactsPage() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
+  const [showOptedOut, setShowOptedOut] = useState(false);
 
   // Modals
   const [formOpen, setFormOpen] = useState(false);
@@ -94,6 +96,10 @@ export default function ContactsPage() {
       .select('*', { count: 'exact' })
       .order('created_at', { ascending: false })
       .range(from, to);
+
+    if (!showOptedOut) {
+      query = query.eq('whatsapp_opted_out', false);
+    }
 
     if (search.trim()) {
       const term = `%${search.trim()}%`;
@@ -225,6 +231,19 @@ export default function ContactsPage() {
             Import
           </Button>
           <Button
+            variant="outline"
+            onClick={() => {
+              setShowOptedOut(!showOptedOut);
+              setPage(0);
+            }}
+            className={`border-border ${
+              showOptedOut ? 'bg-primary/10 text-primary border-primary/30' : 'text-muted-foreground'
+            }`}
+          >
+            <Ban className="size-4" />
+            {showOptedOut ? 'Showing All' : 'Hide Opted-out'}
+          </Button>
+          <Button
             onClick={openAddForm}
             className="bg-primary hover:bg-primary/90 text-primary-foreground"
           >
@@ -259,6 +278,7 @@ export default function ContactsPage() {
               <TableHead className="text-muted-foreground">Phone</TableHead>
               <TableHead className="text-muted-foreground hidden md:table-cell">Email</TableHead>
               <TableHead className="text-muted-foreground hidden lg:table-cell">Company</TableHead>
+              <TableHead className="text-muted-foreground hidden md:table-cell">Status</TableHead>
               <TableHead className="text-muted-foreground hidden md:table-cell">Tags</TableHead>
               <TableHead className="text-muted-foreground hidden lg:table-cell">Created</TableHead>
               <TableHead className="text-muted-foreground w-12" />
@@ -314,6 +334,16 @@ export default function ContactsPage() {
                   </TableCell>
                   <TableCell className="text-muted-foreground hidden lg:table-cell text-sm">
                     {contact.company || <span className="text-muted-foreground">-</span>}
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell text-xs">
+                    {contact.whatsapp_opted_out ? (
+                      <span className="text-red-400 flex items-center gap-1">
+                        <Ban className="size-3" />
+                        Opted out
+                      </span>
+                    ) : (
+                      <span className="text-green-400">Opted in</span>
+                    )}
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
                     <div className="flex flex-wrap gap-1">

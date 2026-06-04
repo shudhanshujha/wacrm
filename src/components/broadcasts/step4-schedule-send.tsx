@@ -5,6 +5,15 @@ import { createClient } from '@/lib/supabase/client';
 import { MessageTemplate } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -14,7 +23,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { ArrowLeft, Send, Loader2, Users, Save } from 'lucide-react';
+import { ArrowLeft, Send, Loader2, Users, Save, Clock } from 'lucide-react';
 
 interface AudienceConfig {
   type: string;
@@ -32,7 +41,18 @@ interface Step4Props {
   onBack: () => void;
   isProcessing: boolean;
   progress: number;
+  scheduledAt: Date | null;
+  onScheduledAtChange: (date: Date | null) => void;
 }
+
+const TIMEZONES = [
+  "Asia/Kolkata",
+  "America/New_York",
+  "America/Los_Angeles",
+  "Europe/London",
+  "Asia/Dubai",
+  "Asia/Singapore",
+];
 
 export function Step4ScheduleSend({
   name,
@@ -44,10 +64,18 @@ export function Step4ScheduleSend({
   onBack,
   isProcessing,
   progress,
+  scheduledAt,
+  onScheduledAtChange,
 }: Step4Props) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [estimatedReach, setEstimatedReach] = useState<number>(0);
   const [loadingReach, setLoadingReach] = useState(true);
+
+  // Local state for scheduling inputs
+  const [scheduleType, setScheduleType] = useState<'now' | 'later'>(scheduledAt ? 'later' : 'now');
+  const [scheduleDate, setScheduleDate] = useState(scheduledAt ? scheduledAt.toISOString().split('T')[0] : '');
+  const [scheduleTime, setScheduleTime] = useState(scheduledAt ? scheduledAt.toTimeString().slice(0, 5) : '');
+  const [scheduleTimezone, setScheduleTimezone] = useState('Asia/Kolkata');
 
   useEffect(() => {
     async function calculateReach() {
@@ -81,6 +109,20 @@ export function Step4ScheduleSend({
     calculateReach();
   }, [audience]);
 
+  // Handle schedule changes
+  useEffect(() => {
+    if (scheduleType === 'now') {
+      onScheduledAtChange(null);
+    } else if (scheduleDate && scheduleTime) {
+      // Create date object in the specified timezone
+      const dateStr = `${scheduleDate}T${scheduleTime}:00`;
+      // This is a simplified way to handle timezones for the prototype.
+      // In a real app, you'd use a library like luxon or date-fns-tz.
+      const date = new Date(dateStr);
+      onScheduledAtChange(date);
+    }
+  }, [scheduleType, scheduleDate, scheduleTime, scheduleTimezone, onScheduledAtChange]);
+
   const audienceLabel =
     audience.type === 'all'
       ? 'All Contacts'
@@ -89,6 +131,8 @@ export function Step4ScheduleSend({
         : audience.type === 'csv'
           ? 'CSV Upload'
           : 'Custom';
+
+  const today = new Date().toISOString().split('T')[0];
 
   return (
     <div className="space-y-6">
@@ -108,6 +152,62 @@ export function Step4ScheduleSend({
           placeholder="e.g. Summer Sale Announcement"
           className="border-slate-700 bg-slate-800 text-white placeholder:text-slate-500"
         />
+      </div>
+
+      {/* Schedule Section */}
+      <div className="space-y-4">
+        <label className="block text-sm font-medium text-white">Schedule (optional)</label>
+        <RadioGroup
+          value={scheduleType}
+          onValueChange={(val: 'now' | 'later') => setScheduleType(val)}
+          className="flex gap-4"
+        >
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="now" id="now" />
+            <Label htmlFor="now" className="text-sm text-white">Send now</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="later" id="later" />
+            <Label htmlFor="later" className="text-sm text-white">Schedule for later</Label>
+          </div>
+        </RadioGroup>
+
+        {scheduleType === 'later' && (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-slate-400">Date</Label>
+              <Input
+                type="date"
+                min={today}
+                value={scheduleDate}
+                onChange={(e) => setScheduleDate(e.target.value)}
+                className="border-slate-700 bg-slate-800 text-white"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-slate-400">Time</Label>
+              <Input
+                type="time"
+                value={scheduleTime}
+                onChange={(e) => setScheduleTime(e.target.value)}
+                className="border-slate-700 bg-slate-800 text-white"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-slate-400">Timezone</Label>
+              <Select value={scheduleTimezone} onValueChange={(val) => val && setScheduleTimezone(val)}>
+                <SelectTrigger className="w-full border-slate-700 bg-slate-800 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="border-slate-700 bg-slate-900 text-white">
+                  {TIMEZONES.map((tz) => (
+                    <SelectItem key={tz} value={tz}>{tz}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Summary Card */}
@@ -186,49 +286,64 @@ export function Step4ScheduleSend({
           )}
 
           <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
-          <DialogTrigger
-            render={
-              <Button
-                disabled={!name.trim() || isProcessing}
-                className="bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-              />
-            }
-          >
-            <Send className="h-4 w-4" />
-            Send Broadcast
-          </DialogTrigger>
-          <DialogContent className="border-slate-700 bg-slate-900 sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle className="text-white">Confirm Broadcast</DialogTitle>
-              <DialogDescription className="text-slate-400">
-                You are about to send this broadcast to{' '}
-                <span className="font-medium text-white">{estimatedReach.toLocaleString()}</span>{' '}
-                contacts using the{' '}
-                <span className="font-medium text-white">{template.name}</span> template.
-                This action cannot be undone.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setShowConfirm(false)}
-                className="border-slate-700 text-slate-300"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={() => {
-                  setShowConfirm(false);
-                  onSend();
-                }}
-                className="bg-primary text-primary-foreground hover:bg-primary/90"
-              >
-                <Send className="h-4 w-4" />
-                Confirm & Send
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            <DialogTrigger
+              render={
+                <Button
+                  disabled={!name.trim() || isProcessing || (scheduleType === 'later' && (!scheduleDate || !scheduleTime))}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                />
+              }
+            >
+              {scheduledAt ? <Clock className="h-4 w-4" /> : <Send className="h-4 w-4" />}
+              {scheduledAt ? 'Schedule Broadcast' : 'Send Broadcast'}
+            </DialogTrigger>
+            <DialogContent className="border-slate-700 bg-slate-900 sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="text-white">
+                  {scheduledAt ? 'Confirm Schedule' : 'Confirm Broadcast'}
+                </DialogTitle>
+                <DialogDescription className="text-slate-400">
+                  {scheduledAt ? (
+                    <>
+                      You are scheduling this broadcast to be sent to{' '}
+                      <span className="font-medium text-white">{estimatedReach.toLocaleString()}</span>{' '}
+                      contacts on{' '}
+                      <span className="font-medium text-white">{scheduledAt.toLocaleString()}</span>{' '}
+                      using the{' '}
+                      <span className="font-medium text-white">{template.name}</span> template.
+                    </>
+                  ) : (
+                    <>
+                      You are about to send this broadcast to{' '}
+                      <span className="font-medium text-white">{estimatedReach.toLocaleString()}</span>{' '}
+                      contacts using the{' '}
+                      <span className="font-medium text-white">{template.name}</span> template.
+                      This action cannot be undone.
+                    </>
+                  )}
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowConfirm(false)}
+                  className="border-slate-700 text-slate-300"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => {
+                    setShowConfirm(false);
+                    onSend();
+                  }}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                  {scheduledAt ? <Clock className="h-4 w-4" /> : <Send className="h-4 w-4" />}
+                  {scheduledAt ? 'Confirm & Schedule' : 'Confirm & Send'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
     </div>

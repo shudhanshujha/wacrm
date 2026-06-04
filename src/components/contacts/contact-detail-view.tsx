@@ -31,6 +31,7 @@ import {
   Save,
   X,
   DollarSign,
+  Ban,
 } from 'lucide-react';
 
 interface ContactDetailViewProps {
@@ -206,6 +207,44 @@ export function ContactDetailView({
       onUpdated();
     }
     setSavingDetails(false);
+  }
+
+  async function handleOptIn() {
+    if (!contactId) return;
+    const { error } = await supabase
+      .from('contacts')
+      .update({
+        whatsapp_opted_out: false,
+        opted_in_at: new Date().toISOString(),
+      })
+      .eq('id', contactId);
+
+    if (error) {
+      toast.error('Failed to update compliance status');
+    } else {
+      toast.success('Contact opted in');
+      fetchContact();
+      onUpdated();
+    }
+  }
+
+  async function handleOptOut() {
+    if (!contactId) return;
+    const { error } = await supabase
+      .from('contacts')
+      .update({
+        whatsapp_opted_out: true,
+        opted_out_at: new Date().toISOString(),
+      })
+      .eq('id', contactId);
+
+    if (error) {
+      toast.error('Failed to update compliance status');
+    } else {
+      toast.success('Contact opted out');
+      fetchContact();
+      onUpdated();
+    }
   }
 
   async function toggleTag(tagId: string) {
@@ -465,6 +504,50 @@ export function ContactDetailView({
                     )}
                     Save Changes
                   </Button>
+
+                  <div className="pt-4 border-t border-slate-700/50 space-y-3">
+                    <Label className="text-slate-400 text-xs">WhatsApp Compliance</Label>
+                    <div className="flex items-center justify-between">
+                      {contact.whatsapp_opted_out ? (
+                        <div className="flex flex-col gap-1">
+                          <Badge variant="outline" className="bg-red-500/10 text-red-400 border-red-500/20 w-fit">
+                            <Ban className="size-3 mr-1" />
+                            Opted Out
+                          </Badge>
+                          {contact.opted_out_at && (
+                            <span className="text-[10px] text-slate-500 italic">
+                              since {new Date(contact.opted_out_at).toLocaleDateString()}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <Badge variant="outline" className="bg-green-500/10 text-green-400 border-green-500/20">
+                          <Check className="size-3 mr-1" />
+                          Opted In
+                        </Badge>
+                      )}
+                      
+                      {contact.whatsapp_opted_out ? (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={handleOptIn}
+                          className="h-7 text-xs border-slate-700 hover:bg-slate-800"
+                        >
+                          Mark as Opted In
+                        </Button>
+                      ) : (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={handleOptOut}
+                          className="h-7 text-xs border-red-500/30 text-red-400 hover:bg-red-500/10"
+                        >
+                          Mark as Opted Out
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </TabsContent>
 
