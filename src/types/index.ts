@@ -77,6 +77,9 @@ export interface Conversation {
   contact_id: string;
   status: ConversationStatus;
   assigned_agent_id?: string;
+  bot_paused?: boolean;
+  bot_paused_at?: string;
+  bot_paused_reason?: string;
   last_message_text?: string;
   last_message_at?: string;
   unread_count: number;
@@ -141,6 +144,16 @@ export interface WhatsAppConfig {
   verify_token?: string;
   status: 'connected' | 'disconnected';
   connected_at?: string;
+}
+
+export interface CannedReply {
+  id: string;
+  user_id: string;
+  title: string;
+  shortcut: string | null;
+  content: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface MessageTemplate {
@@ -275,6 +288,7 @@ export type AutomationStepType =
   | 'wait'
   | 'condition'
   | 'send_webhook'
+  | 'human_handover'
   | 'close_conversation';
 
 export type AutomationLogStatus = 'success' | 'partial' | 'failed';
@@ -358,6 +372,12 @@ export interface SendWebhookStepConfig {
   body_template?: string;
 }
 
+export interface HumanHandoverActionConfig {
+  assignToUserId?: string;
+  handoverMessage?: string;
+  internalNote?: string;
+}
+
 export type AutomationStepConfig =
   | SendMessageStepConfig
   | SendTemplateStepConfig
@@ -368,6 +388,7 @@ export type AutomationStepConfig =
   | WaitStepConfig
   | ConditionStepConfig
   | SendWebhookStepConfig
+  | HumanHandoverActionConfig
   | Record<string, never>
   | Record<string, unknown>;
 

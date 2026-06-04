@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 
 export const dynamic = "force-dynamic"
 
-import { Settings, MessageSquare, Tag, User, Palette } from 'lucide-react';
+import { Settings, MessageSquare, Tag, User, Palette, MessageSquareQuote } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { WhatsAppConfig } from '@/components/settings/whatsapp-config';
 import { TemplateManager } from '@/components/settings/template-manager';
@@ -14,11 +14,13 @@ import { ProfileForm } from '@/components/settings/profile-form';
 import { PasswordForm } from '@/components/settings/password-form';
 import { SessionsCard } from '@/components/settings/sessions-card';
 import { AppearancePanel } from '@/components/settings/appearance-panel';
+import { CannedReplyManager } from '@/components/settings/canned-reply-manager';
 
 const TAB_VALUES = [
   'profile',
   'whatsapp',
   'templates',
+  'canned-replies',
   'tags',
   'appearance',
 ] as const;
@@ -79,6 +81,13 @@ function SettingsContent() {
             Templates
           </TabsTrigger>
           <TabsTrigger
+            value="canned-replies"
+            className="data-active:bg-slate-800 data-active:text-primary text-slate-400"
+          >
+            <MessageSquareQuote className="size-4" />
+            Canned Replies
+          </TabsTrigger>
+          <TabsTrigger
             value="tags"
             className="data-active:bg-slate-800 data-active:text-primary text-slate-400"
           >
@@ -106,6 +115,10 @@ function SettingsContent() {
 
         <TabsContent value="templates">
           <TemplateManager />
+        </TabsContent>
+
+        <TabsContent value="canned-replies">
+          <CannedReplyManager />
         </TabsContent>
 
         <TabsContent value="tags">

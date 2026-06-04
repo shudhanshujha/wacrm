@@ -34,6 +34,8 @@ import {
   Ban,
 } from 'lucide-react';
 
+import { ContactTimeline } from './contact-timeline';
+
 interface ContactDetailViewProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -452,6 +454,12 @@ export function ContactDetailView({
                 >
                   Deals
                 </TabsTrigger>
+                <TabsTrigger
+                  value="activity"
+                  className="data-active:bg-slate-800 data-active:text-primary text-slate-400"
+                >
+                  Activity
+                </TabsTrigger>
               </TabsList>
 
               {/* Details Tab */}
@@ -758,6 +766,10 @@ export function ContactDetailView({
                     ))}
                   </div>
                 )}
+              </TabsContent>
+
+              <TabsContent value="activity" className="flex-1 overflow-y-auto px-4">
+                {contactId && <ContactTimeline contactId={contactId} />}
               </TabsContent>
             </Tabs>
           </div>

@@ -21,9 +21,11 @@ import {
   Clock,
   ArrowLeft,
   RefreshCw,
+  UserCheck,
 } from "lucide-react";
 import { format, isToday, isYesterday, differenceInHours } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -156,6 +158,27 @@ export function MessageThread({
   // doesn't feel like a no-op. Cleared via the timer ref on unmount.
   const [isRefreshing, setIsRefreshing] = useState(false);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleResumeBot = async () => {
+    if (!conversation) return;
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("conversations")
+      .update({
+        bot_paused: false,
+        bot_paused_at: null,
+        bot_paused_reason: null,
+      })
+      .eq("id", conversation.id);
+
+    if (error) {
+      toast.error("Failed to resume bot");
+    } else {
+      toast.success("Bot resumed");
+      window.location.reload();
+    }
+  };
+
   useEffect(() => {
     return () => {
       if (refreshTimerRef.current !== null) {
@@ -847,6 +870,26 @@ export function MessageThread({
         </div>
       </div>
 
+      {/* Bot Paused Banner */}
+      {conversation.bot_paused && (
+        <div className="z-10 flex items-center justify-between border-b border-yellow-500/20 bg-yellow-500/10 px-4 py-2 text-sm text-yellow-200/90 backdrop-blur-md">
+          <div className="flex items-center gap-2">
+            <UserCheck className="h-4 w-4 text-yellow-500" />
+            <span>
+              Bot paused — this conversation is being handled by a human agent.
+            </span>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 border-yellow-500/30 bg-yellow-500/10 px-3 text-xs text-yellow-200 hover:bg-yellow-500/20 hover:text-white"
+            onClick={handleResumeBot}
+          >
+            Resume Bot
+          </Button>
+        </div>
+      )}
+
       {/* Messages Area */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4">
         {loading ? (
@@ -928,6 +971,8 @@ export function MessageThread({
         onOpenTemplates={handleOpenTemplates}
         replyTo={replyTo}
         onClearReply={() => setReplyTo(null)}
+        messages={messages}
+        contactName={contact?.name ?? "Unknown"}
       />
 
       <TemplatePicker

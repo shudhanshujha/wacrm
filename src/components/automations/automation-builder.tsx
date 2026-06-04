@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import {
@@ -40,8 +40,10 @@ import type {
   AutomationStepType,
   AutomationTriggerType,
   KeywordMatchTriggerConfig,
+  Profile,
 } from "@/types"
 import { cn } from "@/lib/utils"
+import { createClient } from "@/lib/supabase/client"
 
 // ------------------------------------------------------------
 // Types (builder-local — mirror the flattened rows we POST)
@@ -87,6 +89,7 @@ const STEP_META: Record<AutomationStepType, StepMeta> = {
   wait: { label: "Wait", icon: Hourglass, border: "border-l-slate-500" },
   condition: { label: "Condition (If/Else)", icon: GitBranch, border: "border-l-amber-500" },
   send_webhook: { label: "Send Webhook", icon: Webhook, border: "border-l-primary" },
+  human_handover: { label: "Human Handover", icon: UserCheck, border: "border-l-primary" },
   close_conversation: { label: "Close Conversation", icon: CircleSlash, border: "border-l-primary" },
 }
 
@@ -101,6 +104,7 @@ const ADDABLE_STEPS: AutomationStepType[] = [
   "wait",
   "condition",
   "send_webhook",
+  "human_handover",
   "close_conversation",
 ]
 
@@ -148,6 +152,8 @@ function blankConfig(type: AutomationStepType): Record<string, unknown> {
       return { subject: "tag_presence", operand: "", value: "" }
     case "send_webhook":
       return { url: "", headers: {}, body_template: "" }
+    case "human_handover":
+      return { assignToUserId: "", handoverMessage: "", internalNote: "" }
     case "close_conversation":
       return {}
     default:
@@ -165,6 +171,16 @@ export function AutomationBuilder({ initial }: { initial: BuilderInitial }) {
   const [state, setState] = useState<BuilderInitial>(initial)
   const [saving, setSaving] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [agents, setAgents] = useState<Profile[]>([])
+
+  useEffect(() => {
+    async function loadAgents() {
+      const supabase = createClient()
+      const { data } = await supabase.from("profiles").select("*").order("full_name")
+      if (data) setAgents(data)
+    }
+    loadAgents()
+  }, [])
 
   function patchTop<K extends keyof BuilderInitial>(key: K, value: BuilderInitial[K]) {
     setState((s) => ({ ...s, [key]: value }))
@@ -301,6 +317,7 @@ export function AutomationBuilder({ initial }: { initial: BuilderInitial }) {
             addStepAt={addStepAt}
             deleteStepAt={deleteStepAt}
             moveStepAt={moveStepAt}
+            agents={agents}
           />
         </div>
       </div>
@@ -468,10 +485,11 @@ interface StepListProps {
   addStepAt: (parent: ParentScope, index: number, type: AutomationStepType) => void
   deleteStepAt: (path: StepPath) => void
   moveStepAt: (path: StepPath, direction: -1 | 1) => void
+  agents: Profile[]
 }
 
 function StepList(props: StepListProps) {
-  const { steps, parentPath, ...rest } = props
+  const { steps, parentPath, agents, ...rest } = props
   const parentScope: ParentScope =
     parentPath.length === 0
       ? { kind: "root" }
@@ -492,6 +510,7 @@ function StepList(props: StepListProps) {
           total={steps.length}
           parentScope={parentScope}
           parentPath={parentPath}
+          agents={agents}
           {...rest}
         />
       ))}
@@ -505,6 +524,7 @@ function StepRenderer({
   total,
   parentScope,
   parentPath,
+  agents,
   ...props
 }: {
   step: BuilderStep
@@ -512,7 +532,8 @@ function StepRenderer({
   total: number
   parentScope: ParentScope
   parentPath: StepPath
-} & Omit<StepListProps, "steps" | "parentPath">) {
+  agents: Profile[]
+} & Omit<StepListProps, "steps" | "parentPath" | "agents">) {
   const path: StepPath = [
     ...parentPath,
     parentScope.kind === "root"
@@ -564,6 +585,7 @@ function StepRenderer({
               <StepEditor
                 step={step}
                 onChange={(next) => props.updateStep(path, () => next)}
+                agents={agents}
               />
               <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-800 pt-3">
                 <div className="flex gap-1">
@@ -600,7 +622,7 @@ function StepRenderer({
         </div>
 
         {isCondition && (
-          <ConditionBranches step={step} parentPath={path} {...props} />
+          <ConditionBranches step={step} parentPath={path} agents={agents} {...props} />
         )}
       </div>
 
@@ -702,9 +724,11 @@ function AddButton({ onPick }: { onPick: (t: AutomationStepType) => void }) {
 function StepEditor({
   step,
   onChange,
+  agents = [],
 }: {
   step: BuilderStep
   onChange: (s: BuilderStep) => void
+  agents?: Profile[]
 }) {
   const cfg = step.step_config
   const set = (patch: Record<string, unknown>) =>
@@ -919,6 +943,41 @@ function StepEditor({
           </FieldBlock>
         </>
       )
+    case "human_handover":
+      return (
+        <>
+          <FieldBlock label="Assign to agent">
+            <select
+              value={(cfg.assignToUserId as string) ?? ""}
+              onChange={(e) => set({ assignToUserId: e.target.value || undefined })}
+              className="w-full rounded-md border border-slate-700 bg-slate-800 px-2 py-1.5 text-sm text-white focus:outline-none"
+            >
+              <option value="">Leave unassigned</option>
+              {agents.map((a) => (
+                <option key={a.id} value={a.user_id}>
+                  {a.full_name || a.email}
+                </option>
+              ))}
+            </select>
+          </FieldBlock>
+          <FieldBlock label="Message to contact (optional)">
+            <Textarea
+              value={(cfg.handoverMessage as string) ?? ""}
+              onChange={(e) => set({ handoverMessage: e.target.value })}
+              placeholder="One moment — connecting you to a team member 👋"
+              className="min-h-16 bg-slate-800 text-white"
+            />
+          </FieldBlock>
+          <FieldBlock label="Internal note for agent (optional)">
+            <Textarea
+              value={(cfg.internalNote as string) ?? ""}
+              onChange={(e) => set({ internalNote: e.target.value })}
+              placeholder="Customer asked about refund — check order #12345"
+              className="min-h-16 bg-slate-800 text-white"
+            />
+          </FieldBlock>
+        </>
+      )
     case "close_conversation":
       return (
         <p className="text-xs text-slate-400">
@@ -957,6 +1016,8 @@ function previewFor(step: BuilderStep): string {
       return `when ${step.step_config.subject ?? "?"}`
     case "send_webhook":
       return (step.step_config.url as string) || "no url"
+    case "human_handover":
+      return "pausing bot and routing to agent"
     default:
       return ""
   }

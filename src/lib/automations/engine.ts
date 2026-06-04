@@ -13,6 +13,7 @@ import type {
   WaitStepConfig,
   CreateDealStepConfig,
   AssignConversationStepConfig,
+  HumanHandoverActionConfig,
 } from '@/types'
 import { supabaseAdmin } from './admin-client'
 import { engineSendText, engineSendTemplate } from './meta-send'
@@ -441,6 +442,52 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
         .eq('user_id', args.automation.user_id)
         .eq('contact_id', args.contactId)
       return 'conversation closed'
+    }
+
+    case 'human_handover': {
+      const cfg = step.step_config as HumanHandoverActionConfig
+      const conversationId = await resolveConversationId(args)
+      
+      const updates: Record<string, unknown> = {
+        bot_paused: true,
+        bot_paused_at: new Date().toISOString(),
+        bot_paused_reason: 'human_handover_flow',
+      }
+      
+      if (cfg.assignToUserId) {
+        updates.assigned_agent_id = cfg.assignToUserId
+        updates.status = 'open'
+      }
+
+      await db.from('conversations').update(updates).eq('id', conversationId)
+
+      // Send handover message to contact if configured
+      if (cfg.handoverMessage?.trim()) {
+        await engineSendText({
+          userId: args.automation.user_id,
+          conversationId,
+          contactId: args.contactId!,
+          text: cfg.handoverMessage,
+        })
+      }
+
+      // Insert internal note if configured
+      if (cfg.internalNote?.trim()) {
+        await db.from('messages').insert({
+          conversation_id: conversationId,
+          user_id: args.automation.user_id,
+          contact_id: args.contactId,
+          content_text: cfg.internalNote,
+          sender_type: 'agent', // Representing human intervention
+          message_type: 'text',
+          status: 'read',
+          created_at: new Date().toISOString(),
+          // Note: If the UI has a specific way to mark internal notes, 
+          // we should follow that. For now, we'll mark as a 'read' agent message.
+        })
+      }
+
+      return `bot paused${cfg.assignToUserId ? `, assigned to ${cfg.assignToUserId}` : ''}`
     }
 
     default:

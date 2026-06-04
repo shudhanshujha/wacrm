@@ -593,6 +593,17 @@ async function processMessage(
       .eq('id', contactRecord.id)
   }
 
+  // ── Bot paused check ────────────────────────────────────────────────
+  const { data: convRecord } = await supabaseAdmin()
+    .from('conversations')
+    .select('bot_paused')
+    .eq('id', conversation.id)
+    .maybeSingle()
+
+  if (convRecord?.bot_paused) {
+    return
+  }
+
   // ============================================================
   // Flow runner dispatch.
   //
