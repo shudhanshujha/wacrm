@@ -3,13 +3,13 @@ import { createClient } from '@/lib/supabase/server'
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const contactId = params.id
+  const { id: contactId } = await params;
 
   // Fetch last 50 messages for this contact
   const { data: messages } = await supabase

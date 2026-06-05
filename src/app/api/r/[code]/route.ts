@@ -11,9 +11,9 @@ function adminClient() {
 
 export async function GET(
   request: Request,
-  { params }: { params: { code: string } }
+  { params }: { params: Promise<{ code: string }> }
 ) {
-  const { code } = params
+  const { code } = await params
   const supabase = adminClient()
 
   // Look up the short link
