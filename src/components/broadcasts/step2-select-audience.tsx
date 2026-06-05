@@ -361,8 +361,8 @@ export function Step2SelectAudience({
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-lg font-semibold text-white">Select Audience</h2>
-        <p className="mt-1 text-sm text-slate-400">
+        <h2 className="text-lg font-semibold text-foreground">Select Audience</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
           Choose who will receive this broadcast.
         </p>
       </div>
@@ -373,11 +373,11 @@ export function Step2SelectAudience({
             <Users className="h-4 w-4" />
           </div>
           <div>
-            <p className="text-sm font-medium text-white">Retarget Audience</p>
-            <p className="mt-1 text-xs text-slate-400">
+            <p className="text-sm font-medium text-foreground">Retarget Audience</p>
+            <p className="mt-1 text-xs text-muted-foreground">
               {audience.segmentContactIds?.length ?? 0} contacts pre-selected from a previous broadcast.
             </p>
-            <p className="mt-2 text-[10px] text-slate-500 italic">
+            <p className="mt-2 text-[10px] text-muted-foreground/70 italic">
               To change the audience, start a new broadcast.
             </p>
           </div>
@@ -410,21 +410,21 @@ export function Step2SelectAudience({
                 className={`flex items-start gap-3 rounded-xl border p-4 text-left transition-all ${
                   isSelected
                     ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
-                    : 'border-slate-800 bg-slate-900/50 hover:border-slate-700'
+                    : 'border-border bg-card hover:border-input hover:bg-accent'
                 }`}
               >
                 <div
                   className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
                     isSelected
                       ? 'bg-primary/10 text-primary'
-                      : 'bg-slate-800 text-slate-400'
+                      : 'bg-muted text-muted-foreground'
                   }`}
                 >
                   <Icon className="h-4 w-4" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-white">{option.label}</p>
-                  <p className="mt-0.5 text-xs text-slate-400">
+                  <p className="text-sm font-medium text-foreground">{option.label}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
                     {option.description}
                   </p>
                 </div>
@@ -435,10 +435,10 @@ export function Step2SelectAudience({
       )}
 
       {audience.type === 'multi_condition' && (
-        <div className="space-y-4 rounded-xl border border-slate-800 bg-slate-900/50 p-4">
+        <div className="space-y-4 rounded-xl border border-border bg-card p-4">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-white">Advanced Filter Builder</p>
-            <div className="flex rounded-lg border border-slate-700 bg-slate-800 p-1">
+            <p className="text-sm font-medium text-foreground">Advanced Filter Builder</p>
+            <div className="flex rounded-lg border border-input bg-muted p-1">
               <button
                 onClick={() => {
                   setConditionLogic('AND');
@@ -447,7 +447,7 @@ export function Step2SelectAudience({
                 className={`rounded-md px-3 py-1 text-xs font-medium transition-all ${
                   conditionLogic === 'AND'
                     ? 'bg-primary text-primary-foreground'
-                    : 'text-slate-400 hover:text-white'
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 Match ALL (AND)
@@ -460,7 +460,7 @@ export function Step2SelectAudience({
                 className={`rounded-md px-3 py-1 text-xs font-medium transition-all ${
                   conditionLogic === 'OR'
                     ? 'bg-primary text-primary-foreground'
-                    : 'text-slate-400 hover:text-white'
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 Match ANY (OR)
@@ -470,15 +470,15 @@ export function Step2SelectAudience({
 
           <div className="space-y-3">
             {conditions.map((cond) => (
-              <div key={cond.id} className="group relative flex flex-wrap items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/30 p-3 pr-10">
+              <div key={cond.id} className="group relative flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/30 p-3 pr-10">
                 <Select
                   value={cond.type}
                   onValueChange={(val: string | null) => val && updateCondition(cond.id, { type: val as any })}
                 >
-                  <SelectTrigger className="h-9 w-[130px] border-slate-700 bg-slate-800 text-xs text-white">
+                  <SelectTrigger className="h-9 w-[130px] border-input bg-muted text-xs text-foreground">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="border-slate-700 bg-slate-900 text-white">
+                  <SelectContent className="border-border bg-card text-foreground">
                     <SelectItem value="tag">Tag</SelectItem>
                     <SelectItem value="custom_field">Custom Field</SelectItem>
                     <SelectItem value="contact_field">Contact Field</SelectItem>
@@ -491,10 +491,10 @@ export function Step2SelectAudience({
                       value={cond.tagOperator ?? 'has'}
                       onValueChange={(val: string | null) => val && updateCondition(cond.id, { tagOperator: val as any })}
                     >
-                      <SelectTrigger className="h-9 w-[120px] border-slate-700 bg-slate-800 text-xs text-white">
+                      <SelectTrigger className="h-9 w-[120px] border-input bg-muted text-xs text-foreground">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="border-slate-700 bg-slate-900 text-white">
+                      <SelectContent className="border-border bg-card text-foreground">
                         <SelectItem value="has">has</SelectItem>
                         <SelectItem value="does_not_have">does not have</SelectItem>
                       </SelectContent>
@@ -503,10 +503,10 @@ export function Step2SelectAudience({
                       value={cond.tagId ?? ''}
                       onValueChange={(val: string | null) => val && updateCondition(cond.id, { tagId: val })}
                     >
-                      <SelectTrigger className="h-9 flex-1 border-slate-700 bg-slate-800 text-xs text-white">
+                      <SelectTrigger className="h-9 flex-1 border-input bg-muted text-xs text-foreground">
                         <SelectValue placeholder="Select tag..." />
                       </SelectTrigger>
-                      <SelectContent className="border-slate-700 bg-slate-900 text-white">
+                      <SelectContent className="border-border bg-card text-foreground">
                         {tags.map(t => (
                           <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
                         ))}
@@ -521,10 +521,10 @@ export function Step2SelectAudience({
                       value={cond.customFieldId ?? ''}
                       onValueChange={(val: string | null) => val && updateCondition(cond.id, { customFieldId: val })}
                     >
-                      <SelectTrigger className="h-9 w-[140px] border-slate-700 bg-slate-800 text-xs text-white">
+                      <SelectTrigger className="h-9 w-[140px] border-input bg-muted text-xs text-foreground">
                         <SelectValue placeholder="Select field..." />
                       </SelectTrigger>
-                      <SelectContent className="border-slate-700 bg-slate-900 text-white">
+                      <SelectContent className="border-border bg-card text-foreground">
                         {customFields.map(f => (
                           <SelectItem key={f.id} value={f.id}>{f.field_name}</SelectItem>
                         ))}
@@ -534,10 +534,10 @@ export function Step2SelectAudience({
                       value={cond.customFieldOperator ?? 'is'}
                       onValueChange={(val: string | null) => val && updateCondition(cond.id, { customFieldOperator: val as any })}
                     >
-                      <SelectTrigger className="h-9 w-[110px] border-slate-700 bg-slate-800 text-xs text-white">
+                      <SelectTrigger className="h-9 w-[110px] border-input bg-muted text-xs text-foreground">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="border-slate-700 bg-slate-900 text-white">
+                      <SelectContent className="border-border bg-card text-foreground">
                         <SelectItem value="is">is</SelectItem>
                         <SelectItem value="is_not">is not</SelectItem>
                         <SelectItem value="contains">contains</SelectItem>
@@ -551,7 +551,7 @@ export function Step2SelectAudience({
                         value={cond.customFieldValue ?? ''}
                         onChange={(e) => updateCondition(cond.id, { customFieldValue: e.target.value })}
                         placeholder="Value"
-                        className="h-9 flex-1 rounded-md border border-slate-700 bg-slate-800 px-3 text-xs text-white outline-none focus:ring-1 focus:ring-primary"
+                        className="h-9 flex-1 rounded-md border border-input bg-muted px-3 text-xs text-foreground outline-none focus:ring-1 focus:ring-primary"
                       />
                     )}
                   </>
@@ -563,10 +563,10 @@ export function Step2SelectAudience({
                       value={cond.contactField ?? 'name'}
                       onValueChange={(val: string | null) => val && updateCondition(cond.id, { contactField: val as any })}
                     >
-                      <SelectTrigger className="h-9 w-[110px] border-slate-700 bg-slate-800 text-xs text-white">
+                      <SelectTrigger className="h-9 w-[110px] border-input bg-muted text-xs text-foreground">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="border-slate-700 bg-slate-900 text-white">
+                      <SelectContent className="border-border bg-card text-foreground">
                         <SelectItem value="name">Name</SelectItem>
                         <SelectItem value="email">Email</SelectItem>
                         <SelectItem value="company">Company</SelectItem>
@@ -577,10 +577,10 @@ export function Step2SelectAudience({
                       value={cond.contactFieldOperator ?? 'contains'}
                       onValueChange={(val: string | null) => val && updateCondition(cond.id, { contactFieldOperator: val as any })}
                     >
-                      <SelectTrigger className="h-9 w-[110px] border-slate-700 bg-slate-800 text-xs text-white">
+                      <SelectTrigger className="h-9 w-[110px] border-input bg-muted text-xs text-foreground">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="border-slate-700 bg-slate-900 text-white">
+                      <SelectContent className="border-border bg-card text-foreground">
                         <SelectItem value="contains">contains</SelectItem>
                         <SelectItem value="is_set">is set</SelectItem>
                         <SelectItem value="is_not_set">is not set</SelectItem>
@@ -592,7 +592,7 @@ export function Step2SelectAudience({
                         value={cond.contactFieldValue ?? ''}
                         onChange={(e) => updateCondition(cond.id, { contactFieldValue: e.target.value })}
                         placeholder="Value"
-                        className="h-9 flex-1 rounded-md border border-slate-700 bg-slate-800 px-3 text-xs text-white outline-none focus:ring-1 focus:ring-primary"
+                        className="h-9 flex-1 rounded-md border border-input bg-muted px-3 text-xs text-foreground outline-none focus:ring-1 focus:ring-primary"
                       />
                     )}
                   </>
@@ -600,7 +600,7 @@ export function Step2SelectAudience({
 
                 <button
                   onClick={() => removeCondition(cond.id)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-red-400 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-red-400 transition-colors"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -612,7 +612,7 @@ export function Step2SelectAudience({
             variant="outline"
             size="sm"
             onClick={addCondition}
-            className="w-full border-dashed border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-white"
+            className="w-full border-dashed border-input text-muted-foreground hover:bg-accent hover:text-foreground"
           >
             <PlusCircle className="h-3.5 w-3.5" />
             Add Condition
@@ -621,12 +621,12 @@ export function Step2SelectAudience({
       )}
 
       {audience.type === 'tags' && (
-        <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">
-          <p className="mb-3 text-sm font-medium text-white">Select Tags</p>
+        <div className="rounded-xl border border-border bg-card p-4">
+          <p className="mb-3 text-sm font-medium text-foreground">Select Tags</p>
           {loadingTags ? (
             <Loader2 className="h-5 w-5 animate-spin text-primary" />
           ) : tags.length === 0 ? (
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-muted-foreground">
               No tags found. Create tags in Settings.
             </p>
           ) : (
@@ -640,7 +640,7 @@ export function Step2SelectAudience({
                     className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium transition-all ${
                       isSelected
                         ? 'border-primary/30 bg-primary/10 text-primary'
-                        : 'border-slate-700 bg-slate-800 text-slate-300 hover:border-slate-600'
+                        : 'border-input bg-muted text-muted-foreground hover:border-muted-foreground/50'
                     }`}
                   >
                     <span
@@ -657,12 +657,12 @@ export function Step2SelectAudience({
       )}
 
       {audience.type === 'custom_field' && (
-        <div className="space-y-3 rounded-xl border border-slate-800 bg-slate-900/50 p-4">
-          <p className="text-sm font-medium text-white">Custom Field Filter</p>
+        <div className="space-y-3 rounded-xl border border-border bg-card p-4">
+          <p className="text-sm font-medium text-foreground">Custom Field Filter</p>
           {loadingFields ? (
             <Loader2 className="h-5 w-5 animate-spin text-primary" />
           ) : customFields.length === 0 ? (
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-muted-foreground">
               No custom fields defined. Create one in Settings → Custom Fields.
             </p>
           ) : (
@@ -670,7 +670,7 @@ export function Step2SelectAudience({
               <select
                 value={audience.customField?.fieldId ?? ''}
                 onChange={(e) => updateCustomField({ fieldId: e.target.value })}
-                className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-2.5 text-sm text-white outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                className="h-9 rounded-lg border border-input bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
               >
                 <option value="">Select field…</option>
                 {customFields.map((f) => (
@@ -686,7 +686,7 @@ export function Step2SelectAudience({
                     operator: e.target.value as CustomFieldOperator,
                   })
                 }
-                className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-2.5 text-sm text-white outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                className="h-9 rounded-lg border border-input bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
               >
                 {OPERATOR_OPTIONS.map((op) => (
                   <option key={op.value} value={op.value}>
@@ -699,7 +699,7 @@ export function Step2SelectAudience({
                 value={audience.customField?.value ?? ''}
                 onChange={(e) => updateCustomField({ value: e.target.value })}
                 placeholder="Value"
-                className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-2.5 text-sm text-white outline-none placeholder:text-slate-500 focus:border-primary focus:ring-1 focus:ring-primary"
+                className="h-9 rounded-lg border border-input bg-muted px-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
               />
             </div>
           )}
@@ -707,16 +707,16 @@ export function Step2SelectAudience({
       )}
 
       {/* Exclude list — applies regardless of audience type */}
-      <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">
+      <div className="rounded-xl border border-border bg-card p-4">
         <div className="mb-3 flex items-center gap-2">
           <X className="h-4 w-4 text-red-400" />
-          <p className="text-sm font-medium text-white">
+          <p className="text-sm font-medium text-foreground">
             Exclude contacts with these tags
           </p>
-          <span className="text-xs text-slate-500">(optional)</span>
+          <span className="text-xs text-muted-foreground/50">(optional)</span>
         </div>
         {tags.length === 0 ? (
-          <p className="text-xs text-slate-500">No tags available.</p>
+          <p className="text-xs text-muted-foreground/50">No tags available.</p>
         ) : (
           <div className="flex flex-wrap gap-2">
             {tags.map((tag) => {
@@ -728,7 +728,7 @@ export function Step2SelectAudience({
                   className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium transition-all ${
                     isExcluded
                       ? 'border-red-500/30 bg-red-500/10 text-red-300'
-                      : 'border-slate-700 bg-slate-800 text-slate-300 hover:border-slate-600'
+                      : 'border-input bg-muted text-muted-foreground hover:border-muted-foreground/50'
                   }`}
                 >
                   <span
@@ -744,33 +744,33 @@ export function Step2SelectAudience({
       </div>
 
       {/* Audience Summary */}
-      <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">
-        <p className="mb-2 text-sm font-medium text-white">Audience Summary</p>
+      <div className="rounded-xl border border-border bg-card p-4">
+        <p className="mb-2 text-sm font-medium text-foreground">Audience Summary</p>
         {loadingCount ? (
           <div className="flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin text-primary" />
-            <span className="text-xs text-slate-400">Calculating…</span>
+            <span className="text-xs text-muted-foreground">Calculating…</span>
           </div>
         ) : estimatedCount !== null ? (
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4 text-primary" />
-            <span className="text-sm text-white">
+            <span className="text-sm text-foreground">
               {estimatedCount.toLocaleString()}
             </span>
-            <span className="text-xs text-slate-400">estimated recipients</span>
+            <span className="text-xs text-muted-foreground">estimated recipients</span>
           </div>
         ) : (
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-muted-foreground/50">
             Select an audience type to see the estimate.
           </p>
         )}
       </div>
 
-      <div className="flex items-center justify-between border-t border-slate-800 pt-4">
+      <div className="flex items-center justify-between border-t border-border pt-4">
         <Button
           variant="outline"
           onClick={onBack}
-          className="border-slate-700 text-slate-300"
+          className="border-input text-muted-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
           Back

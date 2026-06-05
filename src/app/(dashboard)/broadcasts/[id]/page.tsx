@@ -163,37 +163,53 @@ export default function BroadcastDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const [retargetOpen, setRetargetOpen] = useState(false);
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const supabase = createClient();
-
-        const { data: bc, error: bcError } = await supabase
-          .from('broadcasts')
-          .select('*')
-          .eq('id', broadcastId)
-          .single();
-
-        if (bcError) throw bcError;
-        setBroadcast(bc);
-
-        const { data: recs, error: recsError } = await supabase
-          .from('broadcast_recipients')
-          .select('*, contact:contacts(*)')
-          .eq('broadcast_id', broadcastId)
-          .order('created_at', { ascending: false });
-
-        if (recsError) throw recsError;
-        setRecipients(recs ?? []);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load broadcast');
-      } finally {
-        setLoading(false);
-      }
+  const fetchVariants = useCallback(async () => {
+    if (broadcast?.ab_test_enabled) {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from('broadcasts')
+        .select('*')
+        .eq('ab_parent_id', broadcast.id)
+        .order('ab_variant');
+      if (data) setVariants(data);
     }
+  }, [broadcast?.ab_test_enabled, broadcast?.id]);
 
-    fetchData();
+  const fetchData = useCallback(async () => {
+    try {
+      const supabase = createClient();
+
+      const { data: bc, error: bcError } = await supabase
+        .from('broadcasts')
+        .select('*')
+        .eq('id', broadcastId)
+        .single();
+
+      if (bcError) throw bcError;
+      setBroadcast(bc);
+
+      const { data: recs, error: recsError } = await supabase
+        .from('broadcast_recipients')
+        .select('*, contact:contacts(*)')
+        .eq('broadcast_id', broadcastId)
+        .order('created_at', { ascending: false });
+
+      if (recsError) throw recsError;
+      setRecipients(recs ?? []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load broadcast');
+    } finally {
+      setLoading(false);
+    }
   }, [broadcastId]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  useEffect(() => {
+    fetchVariants();
+  }, [fetchVariants]);
 
   const filteredRecipients = useMemo(
     () => {
@@ -273,21 +289,6 @@ export default function BroadcastDetailPage() {
   }
 
   const status = getBroadcastStatus(broadcast.status);
-
-  useEffect(() => {
-    async function fetchVariants() {
-      if (broadcast?.ab_test_enabled) {
-        const supabase = createClient();
-        const { data } = await supabase
-          .from('broadcasts')
-          .select('*')
-          .eq('ab_parent_id', broadcast.id)
-          .order('ab_variant');
-        if (data) setVariants(data);
-      }
-    }
-    fetchVariants();
-  }, [broadcast]);
 
   const funnelSteps: FunnelStep[] = [
     { label: 'Sent', value: broadcast.sent_count, color: 'bg-primary' },
@@ -392,10 +393,10 @@ export default function BroadcastDetailPage() {
       )}
 
       {broadcast.ab_test_enabled && variants.length > 0 && (
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4 space-y-4">
-          <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+        <div className="rounded-xl border border-border bg-card p-4 space-y-4">
+          <div className="flex items-center gap-2 border-b border-border pb-3">
             <Beaker className="h-5 w-5 text-fuchsia-400" />
-            <h2 className="text-sm font-semibold text-white">A/B Test Comparison</h2>
+            <h2 className="text-sm font-semibold text-foreground">A/B Test Comparison</h2>
           </div>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {variants.map((v) => {
@@ -417,7 +418,7 @@ export default function BroadcastDetailPage() {
               };
 
               return (
-                <div key={v.id} className="rounded-lg border border-slate-800 bg-slate-900/50 p-4">
+                <div key={v.id} className="rounded-lg border border-border bg-card/50 p-4">
                   <div className="mb-4 flex items-center justify-between">
                     <div>
                       <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${
@@ -425,10 +426,10 @@ export default function BroadcastDetailPage() {
                       }`}>
                         Variant {v.ab_variant}
                       </span>
-                      <p className="mt-1 text-xs text-slate-400 truncate max-w-[200px]">{v.template_name}</p>
+                      <p className="mt-1 text-xs text-muted-foreground truncate max-w-[200px]">{v.template_name}</p>
                     </div>
                     <Link href={`/broadcasts/${v.id}`}>
-                      <Button variant="ghost" size="sm" className="h-7 text-xs text-slate-400 hover:text-white">
+                      <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground hover:text-foreground">
                         View Details
                       </Button>
                     </Link>
@@ -436,27 +437,27 @@ export default function BroadcastDetailPage() {
                   
                   <div className="space-y-3">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-slate-400">Total Recipients</span>
-                      <span className="font-medium text-white">{v.total_recipients}</span>
+                      <span className="text-muted-foreground">Total Recipients</span>
+                      <span className="font-medium text-foreground">{v.total_recipients}</span>
                     </div>
                     <div className={`flex items-center justify-between text-sm rounded-md px-2 py-1 -mx-2 ${isWinner('sent_count') ? 'bg-green-500/10 text-green-400' : ''}`}>
-                      <span className="text-slate-400">Sent</span>
+                      <span className="text-muted-foreground">Sent</span>
                       <span className="font-medium">{v.sent_count}</span>
                     </div>
                     <div className={`flex items-center justify-between text-sm rounded-md px-2 py-1 -mx-2 ${isWinner('delivered_count') ? 'bg-green-500/10 text-green-400' : ''}`}>
-                      <span className="text-slate-400">Delivered</span>
+                      <span className="text-muted-foreground">Delivered</span>
                       <span className="font-medium">{v.total_recipients > 0 ? Math.round((v.delivered_count / v.total_recipients) * 100) : 0}%</span>
                     </div>
                     <div className={`flex items-center justify-between text-sm rounded-md px-2 py-1 -mx-2 ${isWinner('read_count') ? 'bg-green-500/10 text-green-400' : ''}`}>
-                      <span className="text-slate-400">Read</span>
+                      <span className="text-muted-foreground">Read</span>
                       <span className="font-medium">{v.total_recipients > 0 ? Math.round((v.read_count / v.total_recipients) * 100) : 0}%</span>
                     </div>
                     <div className={`flex items-center justify-between text-sm rounded-md px-2 py-1 -mx-2 ${isWinner('clicked_count') ? 'bg-green-500/10 text-green-400' : ''}`}>
-                      <span className="text-slate-400">Clicked</span>
+                      <span className="text-muted-foreground">Clicked</span>
                       <span className="font-medium">{v.total_recipients > 0 ? Math.round(((v.clicked_count ?? 0) / v.total_recipients) * 100) : 0}%</span>
                     </div>
                     <div className={`flex items-center justify-between text-sm rounded-md px-2 py-1 -mx-2 ${isWinner('replied_count') ? 'bg-green-500/10 text-green-400' : ''}`}>
-                      <span className="text-slate-400">Replied</span>
+                      <span className="text-muted-foreground">Replied</span>
                       <span className="font-medium">{v.total_recipients > 0 ? Math.round((v.replied_count / v.total_recipients) * 100) : 0}%</span>
                     </div>
                   </div>

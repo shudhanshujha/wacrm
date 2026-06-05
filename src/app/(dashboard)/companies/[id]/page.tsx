@@ -77,21 +77,21 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
   }
 
   return (
-    <div className="flex-1 space-y-6 p-4 sm:p-6 lg:p-8 overflow-y-auto bg-slate-950">
+    <div className="flex-1 space-y-6 p-4 sm:p-6 lg:p-8 overflow-y-auto bg-background">
       {/* Header */}
-      <div className="flex items-start gap-4 border-b border-slate-800 pb-6">
+      <div className="flex items-start gap-4 border-b border-border pb-6">
         <Link href="/companies">
-          <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-400 hover:text-white shrink-0 mt-1">
+          <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0 mt-1">
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-slate-800 border border-slate-700">
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-muted border border-border">
               <Building2 className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white truncate">{company.name}</h1>
+              <h1 className="text-2xl font-bold text-foreground truncate">{company.name}</h1>
               {company.domain && (
                 <a href={`https://${company.domain}`} target="_blank" rel="noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1 mt-1">
                   <Globe className="h-3 w-3" /> {company.domain}
@@ -101,16 +101,16 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
           </div>
 
           <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="flex items-center gap-2 text-sm text-slate-300">
-              <Briefcase className="h-4 w-4 text-slate-500" />
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Briefcase className="h-4 w-4 text-muted-foreground" />
               <span className="truncate">{company.industry || 'No industry set'}</span>
             </div>
-            <div className="flex items-center gap-2 text-sm text-slate-300">
-              <Phone className="h-4 w-4 text-slate-500" />
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Phone className="h-4 w-4 text-muted-foreground" />
               <span className="truncate">{company.phone || 'No phone set'}</span>
             </div>
-            <div className="flex items-center gap-2 text-sm text-slate-300">
-              <MapPin className="h-4 w-4 text-slate-500" />
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <MapPin className="h-4 w-4 text-muted-foreground" />
               <span className="truncate">{company.address || 'No address set'}</span>
             </div>
             <div className="flex items-center gap-2 text-sm font-medium text-green-400 bg-green-500/10 border border-green-500/20 px-3 py-1.5 rounded-md w-fit">
@@ -126,45 +126,45 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
         {/* Main Content: Contacts */}
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-white">Contacts at {company.name}</h2>
-            <span className="inline-flex items-center justify-center rounded-full bg-slate-800 px-2.5 py-0.5 text-xs font-medium text-slate-300 ring-1 ring-inset ring-slate-700">
+            <h2 className="text-lg font-semibold text-foreground">Contacts at {company.name}</h2>
+            <span className="inline-flex items-center justify-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground ring-1 ring-inset ring-border">
               {contacts?.length ?? 0}
             </span>
           </div>
 
-          <div className="rounded-xl border border-slate-800 bg-slate-900/50 overflow-hidden">
+          <div className="rounded-xl border border-border bg-card/50 overflow-hidden">
             <Table>
               <TableHeader>
-                <TableRow className="border-slate-800 hover:bg-transparent">
-                  <TableHead className="text-slate-400">Name</TableHead>
-                  <TableHead className="text-slate-400">Phone</TableHead>
-                  <TableHead className="text-slate-400 hidden sm:table-cell">Tags</TableHead>
+                <TableRow className="border-border hover:bg-transparent">
+                  <TableHead className="text-muted-foreground">Name</TableHead>
+                  <TableHead className="text-muted-foreground">Phone</TableHead>
+                  <TableHead className="text-muted-foreground hidden sm:table-cell">Tags</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {contacts?.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={3} className="h-24 text-center text-slate-500 text-sm">
+                    <TableCell colSpan={3} className="h-24 text-center text-muted-foreground text-sm">
                       No contacts linked to this company.
                     </TableCell>
                   </TableRow>
                 ) : (
                   contacts?.map((contact) => (
-                    <TableRow key={contact.id} className="border-slate-800 hover:bg-slate-800/50 transition-colors">
+                    <TableRow key={contact.id} className="border-border hover:bg-muted/50 transition-colors">
                       <TableCell>
-                        <Link href={`/contacts`} className="font-medium text-white hover:text-primary transition-colors">
+                        <Link href={`/contacts`} className="font-medium text-foreground hover:text-primary transition-colors">
                           {contact.name || 'Unknown'}
                         </Link>
                         {contact.whatsapp_opted_out && (
                           <span className="ml-2 text-[10px] text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded border border-red-500/20">Opted Out</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-slate-300 font-mono text-xs">
+                      <TableCell className="text-muted-foreground font-mono text-xs">
                         {contact.phone}
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">
                         <div className="flex flex-wrap gap-1">
-                          {contact.contact_tags?.slice(0, 3).map((ct: any) => ct.tags && (
+                          {(contact.contact_tags as unknown as Array<{ tags: { id: string; name: string; color: string } }>)?.slice(0, 3).map((ct) => ct.tags && (
                             <span
                               key={ct.tags.id}
                               className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
@@ -190,12 +190,12 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
 
         {/* Sidebar: Notes & Details */}
         <div className="space-y-6">
-          <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-5">
-            <h3 className="text-sm font-semibold text-white mb-3">Internal Notes</h3>
+          <div className="rounded-xl border border-border bg-card/50 p-5">
+            <h3 className="text-sm font-semibold text-foreground mb-3">Internal Notes</h3>
             {company.notes ? (
-              <p className="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">{company.notes}</p>
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{company.notes}</p>
             ) : (
-              <p className="text-sm text-slate-500 italic">No notes added for this company.</p>
+              <p className="text-sm text-muted-foreground italic">No notes added for this company.</p>
             )}
           </div>
         </div>

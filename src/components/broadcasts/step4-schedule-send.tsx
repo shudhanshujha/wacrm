@@ -137,26 +137,26 @@ export function Step4ScheduleSend({
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-lg font-semibold text-white">Review & Send</h2>
-        <p className="mt-1 text-sm text-slate-400">
+        <h2 className="text-lg font-semibold text-foreground">Review & Send</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
           Name your broadcast, review the details, and send.
         </p>
       </div>
 
       {/* Broadcast Name */}
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-white">Broadcast Name</label>
+        <label className="mb-1.5 block text-sm font-medium text-foreground">Broadcast Name</label>
         <Input
           value={name}
           onChange={(e) => onNameChange(e.target.value)}
           placeholder="e.g. Summer Sale Announcement"
-          className="border-slate-700 bg-slate-800 text-white placeholder:text-slate-500"
+          className="border-input bg-muted text-foreground placeholder:text-muted-foreground"
         />
       </div>
 
       {/* Schedule Section */}
       <div className="space-y-4">
-        <label className="block text-sm font-medium text-white">Schedule (optional)</label>
+        <label className="block text-sm font-medium text-foreground">Schedule (optional)</label>
         <RadioGroup
           value={scheduleType}
           onValueChange={(val: 'now' | 'later') => setScheduleType(val)}
@@ -164,42 +164,42 @@ export function Step4ScheduleSend({
         >
           <div className="flex items-center space-x-2">
             <RadioGroupItem value="now" id="now" />
-            <Label htmlFor="now" className="text-sm text-white">Send now</Label>
+            <Label htmlFor="now" className="text-sm text-foreground">Send now</Label>
           </div>
           <div className="flex items-center space-x-2">
             <RadioGroupItem value="later" id="later" />
-            <Label htmlFor="later" className="text-sm text-white">Schedule for later</Label>
+            <Label htmlFor="later" className="text-sm text-foreground">Schedule for later</Label>
           </div>
         </RadioGroup>
 
         {scheduleType === 'later' && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="space-y-1.5">
-              <Label className="text-xs text-slate-400">Date</Label>
+              <Label className="text-xs text-muted-foreground">Date</Label>
               <Input
                 type="date"
                 min={today}
                 value={scheduleDate}
                 onChange={(e) => setScheduleDate(e.target.value)}
-                className="border-slate-700 bg-slate-800 text-white"
+                className="border-input bg-muted text-foreground"
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs text-slate-400">Time</Label>
+              <Label className="text-xs text-muted-foreground">Time</Label>
               <Input
                 type="time"
                 value={scheduleTime}
                 onChange={(e) => setScheduleTime(e.target.value)}
-                className="border-slate-700 bg-slate-800 text-white"
+                className="border-input bg-muted text-foreground"
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs text-slate-400">Timezone</Label>
+              <Label className="text-xs text-muted-foreground">Timezone</Label>
               <Select value={scheduleTimezone} onValueChange={(val) => val && setScheduleTimezone(val)}>
-                <SelectTrigger className="w-full border-slate-700 bg-slate-800 text-white">
+                <SelectTrigger className="w-full border-input bg-muted text-foreground">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="border-slate-700 bg-slate-900 text-white">
+                <SelectContent className="border-border bg-card text-foreground">
                   {TIMEZONES.map((tz) => (
                     <SelectItem key={tz} value={tz}>{tz}</SelectItem>
                   ))}
@@ -211,33 +211,33 @@ export function Step4ScheduleSend({
       </div>
 
       {/* Summary Card */}
-      <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4 space-y-3">
-        <p className="text-sm font-medium text-white">Summary</p>
+      <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+        <p className="text-sm font-medium text-foreground">Summary</p>
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div>
-            <p className="text-xs text-slate-400">Template</p>
-            <p className="text-white">{template.name}</p>
+            <p className="text-xs text-muted-foreground">Template</p>
+            <p className="text-foreground">{template.name}</p>
           </div>
           <div>
-            <p className="text-xs text-slate-400">Audience</p>
-            <p className="text-white">{audienceLabel}</p>
+            <p className="text-xs text-muted-foreground">Audience</p>
+            <p className="text-foreground">{audienceLabel}</p>
           </div>
           <div>
-            <p className="text-xs text-slate-400">Estimated Reach</p>
+            <p className="text-xs text-muted-foreground">Estimated Reach</p>
             <div className="flex items-center gap-1.5">
               {loadingReach ? (
                 <Loader2 className="h-3 w-3 animate-spin text-primary" />
               ) : (
                 <>
                   <Users className="h-3.5 w-3.5 text-primary" />
-                  <p className="font-medium text-white">{estimatedReach.toLocaleString()}</p>
+                  <p className="font-medium text-foreground">{estimatedReach.toLocaleString()}</p>
                 </>
               )}
             </div>
           </div>
           <div>
-            <p className="text-xs text-slate-400">Language</p>
-            <p className="text-white">{template.language ?? 'en_US'}</p>
+            <p className="text-xs text-muted-foreground">Language</p>
+            <p className="text-foreground">{template.language ?? 'en_US'}</p>
           </div>
         </div>
       </div>
@@ -248,11 +248,11 @@ export function Step4ScheduleSend({
           <div className="mb-2 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin text-primary" />
-              <p className="text-sm font-medium text-white">Sending broadcast...</p>
+              <p className="text-sm font-medium text-foreground">Sending broadcast...</p>
             </div>
             <span className="text-xs font-medium text-primary">{progress}%</span>
           </div>
-          <div className="h-1.5 w-full rounded-full bg-slate-800">
+          <div className="h-1.5 w-full rounded-full bg-muted">
             <div
               className="h-1.5 rounded-full bg-primary transition-all duration-300"
               style={{ width: `${progress}%` }}
@@ -261,12 +261,12 @@ export function Step4ScheduleSend({
         </div>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-800 pt-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-4">
         <Button
           variant="outline"
           onClick={onBack}
           disabled={isProcessing}
-          className="border-slate-700 text-slate-300"
+          className="border-input text-muted-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
           Back
@@ -278,7 +278,7 @@ export function Step4ScheduleSend({
               variant="outline"
               onClick={onSaveDraft}
               disabled={!name.trim() || isProcessing}
-              className="border-slate-700 text-slate-300 hover:bg-slate-800 disabled:opacity-50"
+              className="border-input text-muted-foreground hover:bg-accent disabled:opacity-50"
             >
               <Save className="h-4 w-4" />
               Save as Draft
@@ -297,27 +297,27 @@ export function Step4ScheduleSend({
               {scheduledAt ? <Clock className="h-4 w-4" /> : <Send className="h-4 w-4" />}
               {scheduledAt ? 'Schedule Broadcast' : 'Send Broadcast'}
             </DialogTrigger>
-            <DialogContent className="border-slate-700 bg-slate-900 sm:max-w-md">
+            <DialogContent className="border-border bg-card sm:max-w-md">
               <DialogHeader>
-                <DialogTitle className="text-white">
+                <DialogTitle className="text-foreground">
                   {scheduledAt ? 'Confirm Schedule' : 'Confirm Broadcast'}
                 </DialogTitle>
-                <DialogDescription className="text-slate-400">
+                <DialogDescription className="text-muted-foreground">
                   {scheduledAt ? (
                     <>
                       You are scheduling this broadcast to be sent to{' '}
-                      <span className="font-medium text-white">{estimatedReach.toLocaleString()}</span>{' '}
+                      <span className="font-medium text-foreground">{estimatedReach.toLocaleString()}</span>{' '}
                       contacts on{' '}
-                      <span className="font-medium text-white">{scheduledAt.toLocaleString()}</span>{' '}
+                      <span className="font-medium text-foreground">{scheduledAt.toLocaleString()}</span>{' '}
                       using the{' '}
-                      <span className="font-medium text-white">{template.name}</span> template.
+                      <span className="font-medium text-foreground">{template.name}</span> template.
                     </>
                   ) : (
                     <>
                       You are about to send this broadcast to{' '}
-                      <span className="font-medium text-white">{estimatedReach.toLocaleString()}</span>{' '}
+                      <span className="font-medium text-foreground">{estimatedReach.toLocaleString()}</span>{' '}
                       contacts using the{' '}
-                      <span className="font-medium text-white">{template.name}</span> template.
+                      <span className="font-medium text-foreground">{template.name}</span> template.
                       This action cannot be undone.
                     </>
                   )}
@@ -327,7 +327,7 @@ export function Step4ScheduleSend({
                 <Button
                   variant="outline"
                   onClick={() => setShowConfirm(false)}
-                  className="border-slate-700 text-slate-300"
+                  className="border-input text-muted-foreground"
                 >
                   Cancel
                 </Button>

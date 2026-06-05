@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Broadcast } from '@/types';
@@ -13,15 +13,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Radio, Plus, Loader2 } from 'lucide-react';
+import { Loader2, Plus, Radio, FileText } from 'lucide-react';
 import { getBroadcastStatus } from '@/lib/broadcast-status';
-
-const POLL_INTERVAL_MS = 5_000;
-
-function percent(numerator: number, denominator: number): number {
-  if (!denominator) return 0;
-  return Math.round((numerator / denominator) * 100);
-}
 
 function RateCell({
   value,
@@ -32,90 +25,56 @@ function RateCell({
   total: number;
   color: string;
 }) {
-  const pct = percent(value, total);
+  const rate = total > 0 ? Math.round((value / total) * 100) : 0;
   return (
     <div className="flex items-center gap-2">
-      <span className="w-10 text-right text-xs tabular-nums text-muted-foreground">
-        {pct}%
-      </span>
-      <div className="h-1.5 w-20 overflow-hidden rounded-full bg-muted">
+      <div className="h-1.5 w-12 rounded-full bg-muted overflow-hidden">
         <div
-          className={`h-1.5 rounded-full ${color}`}
-          style={{ width: `${pct}%` }}
+          className={`h-full ${color}`}
+          style={{ width: `${rate}%` }}
         />
       </div>
+      <span className="text-xs font-medium text-foreground tabular-nums">
+        {rate}%
+      </span>
     </div>
   );
 }
 
 export default function BroadcastsContent() {
   const router = useRouter();
+  const supabase = createClient();
+
   const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
-
   async function fetchBroadcasts() {
-    try {
-      const supabase = createClient();
-      const { data, error: fetchError } = await supabase
-        .from('broadcasts')
-        .select('*')
-        .order('created_at', { ascending: false });
+    setLoading(true);
+    const { data, error: err } = await supabase
+      .from('broadcasts')
+      .select('*')
+      .order('created_at', { ascending: false });
 
-      if (fetchError) throw fetchError;
+    if (err) {
+      setError(err.message);
+    } else {
       setBroadcasts(data ?? []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load broadcasts');
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   }
 
   useEffect(() => {
-    fetchBroadcasts();
+    setTimeout(() => {
+      fetchBroadcasts();
+    }, 0);
   }, []);
 
-  const anySending = useMemo(
-    () => broadcasts.some((b) => b.status === 'sending'),
-    [broadcasts],
-  );
+  const anySending = useMemo(() => {
+    return broadcasts.some((b) => b.status === 'sending');
+  }, [broadcasts]);
 
-  useEffect(() => {
-    function startPolling() {
-      if (pollTimer.current) return;
-      pollTimer.current = setInterval(fetchBroadcasts, POLL_INTERVAL_MS);
-    }
-    function stopPolling() {
-      if (!pollTimer.current) return;
-      clearInterval(pollTimer.current);
-      pollTimer.current = null;
-    }
-
-    function handleVisibilityChange() {
-      if (!anySending) return;
-      if (document.visibilityState === 'hidden') {
-        stopPolling();
-      } else {
-        fetchBroadcasts();
-        startPolling();
-      }
-    }
-
-    if (anySending && document.visibilityState === 'visible') {
-      startPolling();
-    } else {
-      stopPolling();
-    }
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      stopPolling();
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [anySending]);
-
-  if (loading) {
+  if (loading && broadcasts.length === 0) {
     return (
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -125,9 +84,10 @@ export default function BroadcastsContent() {
 
   if (error) {
     return (
-      <div className="flex h-64 flex-col items-center justify-center gap-2">
-        <p className="text-sm text-red-400">{error}</p>
-        <Button variant="outline" onClick={() => window.location.reload()}>
+      <div className="flex h-64 flex-col items-center justify-center gap-2 text-center p-8">
+        <p className="text-sm text-red-400 font-medium">Error loading broadcasts</p>
+        <p className="text-xs text-muted-foreground max-w-xs">{error}</p>
+        <Button variant="outline" onClick={() => window.location.reload()} className="mt-2">
           Retry
         </Button>
       </div>
@@ -179,11 +139,11 @@ export default function BroadcastsContent() {
       </div>
 
       {broadcasts.length === 0 ? (
-        <div className="flex h-64 flex-col items-center justify-center rounded-xl border border-border bg-card">
-          <Radio className="mb-3 h-10 w-10 text-muted-foreground" />
+        <div className="flex h-64 flex-col items-center justify-center rounded-xl border border-border bg-card/30">
+          <Radio className="mb-3 h-10 w-10 text-muted-foreground/50" />
           <p className="text-sm font-medium text-foreground">No broadcasts yet</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Create your first broadcast to reach your contacts at scale.
+            Reach your contacts at scale with bulk messaging.
           </p>
           <Button
             onClick={() => router.push('/broadcasts/new')}
@@ -194,21 +154,17 @@ export default function BroadcastsContent() {
           </Button>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-border bg-card">
+        <div className="rounded-lg border border-border overflow-hidden bg-card/30">
           <Table>
             <TableHeader>
               <TableRow className="border-border hover:bg-transparent">
-                <TableHead className="text-muted-foreground">Name</TableHead>
-                <TableHead className="hidden text-muted-foreground md:table-cell">Template</TableHead>
-                <TableHead className="hidden text-right text-muted-foreground sm:table-cell">
-                  Recipients
-                </TableHead>
+                <TableHead className="text-muted-foreground">Broadcast</TableHead>
+                <TableHead className="hidden text-right text-muted-foreground tabular-nums sm:table-cell">Audience</TableHead>
                 <TableHead className="hidden text-muted-foreground lg:table-cell">Delivery</TableHead>
                 <TableHead className="hidden text-muted-foreground lg:table-cell">Read</TableHead>
                 <TableHead className="hidden text-muted-foreground xl:table-cell">Clicked</TableHead>
                 <TableHead className="text-muted-foreground">Status</TableHead>
-                <TableHead className="hidden text-muted-foreground md:table-cell">A/B</TableHead>
-                <TableHead className="hidden text-muted-foreground sm:table-cell">Date</TableHead>
+                <TableHead className="hidden text-muted-foreground md:table-cell text-center">A/B</TableHead>
                 <TableHead className="hidden text-muted-foreground md:table-cell">Scheduled For</TableHead>
               </TableRow>
             </TableHeader>
@@ -218,16 +174,27 @@ export default function BroadcastsContent() {
                 return (
                   <TableRow
                     key={broadcast.id}
-                    className="cursor-pointer border-border hover:bg-accent/50"
+                    className="cursor-pointer border-border hover:bg-accent/30 transition-colors"
                     onClick={() => router.push(`/broadcasts/${broadcast.id}`)}
                   >
-                    <TableCell className="font-medium text-foreground">
-                      {broadcast.name}
+                    <TableCell>
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-foreground font-semibold truncate">
+                          {broadcast.name}
+                        </span>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                            <FileText className="size-3" />
+                            {broadcast.template_name}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground/30">•</span>
+                          <span className="text-[10px] text-muted-foreground tabular-nums">
+                            {new Date(broadcast.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
                     </TableCell>
-                    <TableCell className="hidden text-muted-foreground md:table-cell">
-                      {broadcast.template_name}
-                    </TableCell>
-                    <TableCell className="hidden text-right text-muted-foreground tabular-nums sm:table-cell">
+                    <TableCell className="hidden text-right text-muted-foreground tabular-nums sm:table-cell font-mono text-xs">
                       {broadcast.total_recipients}
                     </TableCell>
                     <TableCell className="hidden lg:table-cell">
@@ -253,7 +220,7 @@ export default function BroadcastsContent() {
                     </TableCell>
                     <TableCell>
                       <span
-                        className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium ${status.classes}`}
+                        className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-tight ${status.classes}`}
                       >
                         {status.pulse && (
                           <span className="relative flex h-1.5 w-1.5">
@@ -264,24 +231,21 @@ export default function BroadcastsContent() {
                         {status.label}
                       </span>
                     </TableCell>
-                    <TableCell className="hidden text-muted-foreground md:table-cell">
+                    <TableCell className="hidden text-muted-foreground md:table-cell text-center">
                       {broadcast.ab_variant === 'A' && (
-                        <span className="inline-flex items-center rounded-full border border-violet-800 bg-violet-900/40 px-2 py-0.5 text-[10px] font-medium text-violet-300">
-                          A/B · A
+                        <span className="inline-flex items-center rounded-full border border-violet-800 bg-violet-900/40 px-2 py-0.5 text-[9px] font-bold text-violet-300 uppercase">
+                          A
                         </span>
                       )}
                       {broadcast.ab_variant === 'B' && (
-                        <span className="inline-flex items-center rounded-full border border-fuchsia-800 bg-fuchsia-900/40 px-2 py-0.5 text-[10px] font-medium text-fuchsia-300">
-                          A/B · B
+                        <span className="inline-flex items-center rounded-full border border-fuchsia-800 bg-fuchsia-900/40 px-2 py-0.5 text-[9px] font-bold text-fuchsia-300 uppercase">
+                          B
                         </span>
                       )}
-                      {!broadcast.ab_variant && '-'}
+                      {!broadcast.ab_variant && <span className="text-muted-foreground/20 text-xs">—</span>}
                     </TableCell>
-                    <TableCell className="hidden text-muted-foreground sm:table-cell">
-                      {new Date(broadcast.created_at).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell className="hidden text-muted-foreground md:table-cell">
-                      {broadcast.scheduled_at ? new Date(broadcast.scheduled_at).toLocaleString() : '-'}
+                    <TableCell className="hidden text-muted-foreground md:table-cell text-[11px] tabular-nums">
+                      {broadcast.scheduled_at ? new Date(broadcast.scheduled_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : '-'}
                     </TableCell>
                   </TableRow>
                 );

@@ -86,7 +86,9 @@ export function CatalogManager() {
   }, [supabase]);
 
   useEffect(() => {
-    fetchProducts();
+    setTimeout(() => {
+      fetchProducts();
+    }, 0);
   }, [fetchProducts]);
 
   function openAdd() {
@@ -193,8 +195,8 @@ export function CatalogManager() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold text-white">WhatsApp Catalog</h2>
-        <p className="mt-1 text-sm text-slate-400">
+        <h2 className="text-xl font-bold text-foreground">WhatsApp Catalog</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
           Manage your products to send interactive catalog messages.
         </p>
       </div>
@@ -228,15 +230,15 @@ export function CatalogManager() {
         </div>
       </div>
 
-      <div className="rounded-xl border border-slate-800 bg-slate-900/50">
+      <div className="rounded-xl border border-border bg-card">
         <Table>
           <TableHeader>
-            <TableRow className="border-slate-800 hover:bg-transparent">
+            <TableRow className="border-border hover:bg-transparent">
               <TableHead className="w-16"></TableHead>
-              <TableHead className="text-slate-400">Name</TableHead>
-              <TableHead className="text-slate-400">Price</TableHead>
-              <TableHead className="text-slate-400">Retailer ID</TableHead>
-              <TableHead className="text-slate-400">Status</TableHead>
+              <TableHead className="text-muted-foreground">Name</TableHead>
+              <TableHead className="text-muted-foreground">Price</TableHead>
+              <TableHead className="text-muted-foreground">Retailer ID</TableHead>
+              <TableHead className="text-muted-foreground">Status</TableHead>
               <TableHead className="w-24"></TableHead>
             </TableRow>
           </TableHeader>
@@ -249,7 +251,7 @@ export function CatalogManager() {
               </TableRow>
             ) : products.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-32 text-center text-slate-500">
+                <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
                   <div className="flex flex-col items-center gap-2">
                     <ShoppingBag className="h-8 w-8 opacity-20" />
                     <p>No products yet. Add your first product!</p>
@@ -258,9 +260,9 @@ export function CatalogManager() {
               </TableRow>
             ) : (
               products.map((product) => (
-                <TableRow key={product.id} className="border-slate-800">
+                <TableRow key={product.id} className="border-border">
                   <TableCell>
-                    <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded bg-slate-800 ring-1 ring-slate-700">
+                    <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded bg-muted ring-1 ring-border">
                       {product.image_url ? (
                         <img
                           src={product.image_url}
@@ -268,26 +270,26 @@ export function CatalogManager() {
                           className="h-full w-full object-cover"
                         />
                       ) : (
-                        <ShoppingBag className="h-4 w-4 text-slate-500" />
+                        <ShoppingBag className="h-4 w-4 text-muted-foreground" />
                       )}
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="font-medium text-white">{product.name}</div>
+                    <div className="font-medium text-foreground">{product.name}</div>
                     {product.description && (
-                      <div className="truncate text-xs text-slate-500 max-w-[200px]">
+                      <div className="truncate text-xs text-muted-foreground max-w-[200px]">
                         {product.description}
                       </div>
                     )}
                   </TableCell>
-                  <TableCell className="text-slate-300">
+                  <TableCell className="text-muted-foreground">
                     {new Intl.NumberFormat('en-IN', {
                       style: 'currency',
                       currency: product.currency,
                     }).format(product.price)}
                   </TableCell>
                   <TableCell>
-                    <code className="rounded bg-slate-800 px-1.5 py-0.5 text-xs text-slate-300">
+                    <code className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
                       {product.retailer_id}
                     </code>
                   </TableCell>
@@ -297,7 +299,7 @@ export function CatalogManager() {
                         Active
                       </span>
                     ) : (
-                      <span className="inline-flex items-center rounded-full bg-slate-500/10 px-2 py-0.5 text-[10px] font-medium text-slate-400">
+                      <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
                         Inactive
                       </span>
                     )}
@@ -308,7 +310,7 @@ export function CatalogManager() {
                         variant="ghost"
                         size="icon"
                         onClick={() => openEdit(product)}
-                        className="h-8 w-8 text-slate-400 hover:text-white"
+                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -316,7 +318,7 @@ export function CatalogManager() {
                         variant="ghost"
                         size="icon"
                         onClick={() => confirmDelete(product)}
-                        className="h-8 w-8 text-slate-400 hover:text-red-400"
+                        className="h-8 w-8 text-muted-foreground hover:text-red-400"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -331,12 +333,12 @@ export function CatalogManager() {
 
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="border-slate-800 bg-slate-900 text-white sm:max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogContent className="border-border bg-card text-foreground sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingProduct ? 'Edit Product' : 'Add Product'}
             </DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogDescription className="text-muted-foreground">
               Details for your WhatsApp catalog item.
             </DialogDescription>
           </DialogHeader>
@@ -348,7 +350,7 @@ export function CatalogManager() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Product Name"
-                className="border-slate-700 bg-slate-800 text-white"
+                className="border-input bg-muted text-foreground"
                 required
               />
             </div>
@@ -362,17 +364,17 @@ export function CatalogManager() {
                   min="0"
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
-                  className="border-slate-700 bg-slate-800 text-white"
+                  className="border-input bg-muted text-foreground"
                   required
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="currency">Currency</Label>
                 <Select value={currency} onValueChange={(val) => val && setCurrency(val)}>
-                  <SelectTrigger className="border-slate-700 bg-slate-800 text-white">
+                  <SelectTrigger className="border-input bg-muted text-foreground">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="border-slate-700 bg-slate-900 text-white">
+                  <SelectContent className="border-border bg-card text-foreground">
                     <SelectItem value="INR">INR (₹)</SelectItem>
                     <SelectItem value="USD">USD ($)</SelectItem>
                     <SelectItem value="EUR">EUR (€)</SelectItem>
@@ -392,10 +394,10 @@ export function CatalogManager() {
                 value={retailerId}
                 onChange={(e) => setRetailerId(e.target.value)}
                 placeholder="SKU-12345"
-                className="border-slate-700 bg-slate-800 font-mono text-xs text-white"
+                className="border-input bg-muted font-mono text-xs text-foreground"
                 required
               />
-              <p className="text-[10px] text-slate-500">
+              <p className="text-[10px] text-muted-foreground">
                 Must exactly match the Content ID in Meta Commerce Manager.
               </p>
             </div>
@@ -407,7 +409,7 @@ export function CatalogManager() {
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Product description..."
                 rows={3}
-                className="border-slate-700 bg-slate-800 text-white"
+                className="border-input bg-muted text-foreground"
               />
             </div>
             <div className="space-y-2">
@@ -418,18 +420,18 @@ export function CatalogManager() {
                 value={imageUrl}
                 onChange={(e) => setImageUrl(e.target.value)}
                 placeholder="https://..."
-                className="border-slate-700 bg-slate-800 text-white"
+                className="border-input bg-muted text-foreground"
               />
               {imageUrl && (
-                <div className="mt-2 flex h-24 w-24 items-center justify-center overflow-hidden rounded-md border border-slate-700 bg-slate-800">
+                <div className="mt-2 flex h-24 w-24 items-center justify-center overflow-hidden rounded-md border border-input bg-muted">
                   <img src={imageUrl} alt="Preview" className="h-full w-full object-cover" onError={(e) => (e.currentTarget.style.display = 'none')} />
                 </div>
               )}
             </div>
-            <div className="flex items-center justify-between rounded-lg border border-slate-700 bg-slate-800 p-3">
+            <div className="flex items-center justify-between rounded-lg border border-input bg-muted p-3">
               <div className="space-y-0.5">
                 <Label>Active Status</Label>
-                <p className="text-xs text-slate-400">Available to send in messages</p>
+                <p className="text-xs text-muted-foreground">Available to send in messages</p>
               </div>
               <Switch checked={isActive} onCheckedChange={setIsActive} />
             </div>
@@ -439,7 +441,7 @@ export function CatalogManager() {
                 type="button"
                 variant="outline"
                 onClick={() => setDialogOpen(false)}
-                className="border-slate-700 text-slate-300"
+                className="border-input text-muted-foreground"
               >
                 Cancel
               </Button>
@@ -458,11 +460,11 @@ export function CatalogManager() {
 
       {/* Delete Confirmation */}
       <Dialog open={deleteConfirmOpen} onOpenChange={(open) => !open && setDeleteConfirmOpen(false)}>
-        <DialogContent className="border-slate-800 bg-slate-900 text-white sm:max-w-sm">
+        <DialogContent className="border-border bg-card text-foreground sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Remove Product</DialogTitle>
-            <DialogDescription className="text-slate-400">
-              Are you sure you want to remove <span className="font-medium text-white">{deleteTarget?.name}</span>? 
+            <DialogDescription className="text-muted-foreground">
+              Are you sure you want to remove <span className="font-medium text-foreground">{deleteTarget?.name}</span>? 
               This will mark it as inactive.
             </DialogDescription>
           </DialogHeader>
@@ -470,7 +472,7 @@ export function CatalogManager() {
             <Button
               variant="outline"
               onClick={() => setDeleteConfirmOpen(false)}
-              className="border-slate-700 text-slate-300"
+              className="border-input text-muted-foreground"
             >
               Cancel
             </Button>

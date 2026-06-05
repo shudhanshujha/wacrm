@@ -162,24 +162,24 @@ export function CannedReplyManager() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-white">Canned Replies</h2>
-          <p className="text-sm text-slate-400">
+          <h2 className="text-lg font-semibold text-foreground">Canned Replies</h2>
+          <p className="text-sm text-muted-foreground">
             Save frequently used messages for quick access in the inbox.
           </p>
         </div>
-        <Button onClick={openAdd} className="bg-primary text-primary-foreground">
+        <Button onClick={openAdd} className="bg-primary text-primary-foreground hover:bg-primary/90">
           <Plus className="mr-2 h-4 w-4" />
           New Reply
         </Button>
       </div>
 
-      <div className="rounded-xl border border-slate-800 bg-slate-900/50">
+      <div className="rounded-xl border border-border bg-card/50">
         <Table>
           <TableHeader>
-            <TableRow className="border-slate-800 hover:bg-transparent">
-              <TableHead className="text-slate-400">Title</TableHead>
-              <TableHead className="text-slate-400">Shortcut</TableHead>
-              <TableHead className="text-slate-400">Content</TableHead>
+            <TableRow className="border-border hover:bg-transparent">
+              <TableHead className="text-muted-foreground">Title</TableHead>
+              <TableHead className="text-muted-foreground">Shortcut</TableHead>
+              <TableHead className="text-muted-foreground">Content</TableHead>
               <TableHead className="w-24" />
             </TableRow>
           </TableHeader>
@@ -192,7 +192,7 @@ export function CannedReplyManager() {
               </TableRow>
             ) : replies.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="h-32 text-center text-slate-500">
+                <TableCell colSpan={4} className="h-32 text-center text-muted-foreground">
                   <div className="flex flex-col items-center gap-2">
                     <MessageSquareQuote className="h-8 w-8 opacity-20" />
                     <p>No canned replies yet. Create your first one!</p>
@@ -201,20 +201,20 @@ export function CannedReplyManager() {
               </TableRow>
             ) : (
               replies.map((reply) => (
-                <TableRow key={reply.id} className="border-slate-800">
-                  <TableCell className="font-medium text-white">
+                <TableRow key={reply.id} className="border-border hover:bg-accent/50 transition-colors">
+                  <TableCell className="font-medium text-foreground">
                     {reply.title}
                   </TableCell>
                   <TableCell>
                     {reply.shortcut ? (
-                      <code className="rounded bg-slate-800 px-1.5 py-0.5 text-xs text-primary">
+                      <code className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono text-primary ring-1 ring-primary/20">
                         {reply.shortcut}
                       </code>
                     ) : (
-                      <span className="text-slate-600">—</span>
+                      <span className="text-muted-foreground/30">—</span>
                     )}
                   </TableCell>
-                  <TableCell className="max-w-md truncate text-slate-400">
+                  <TableCell className="max-w-md truncate text-muted-foreground">
                     {reply.content}
                   </TableCell>
                   <TableCell>
@@ -223,7 +223,7 @@ export function CannedReplyManager() {
                         variant="ghost"
                         size="icon"
                         onClick={() => openEdit(reply)}
-                        className="h-8 w-8 text-slate-400 hover:text-white"
+                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -231,7 +231,7 @@ export function CannedReplyManager() {
                         variant="ghost"
                         size="icon"
                         onClick={() => confirmDelete(reply)}
-                        className="h-8 w-8 text-slate-400 hover:text-red-400"
+                        className="h-8 w-8 text-muted-foreground hover:text-red-400"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -246,7 +246,7 @@ export function CannedReplyManager() {
 
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="border-slate-800 bg-slate-900 text-white sm:max-w-md">
+        <DialogContent className="border-border bg-card text-foreground sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
               {editingReply ? 'Edit Canned Reply' : 'New Canned Reply'}
@@ -254,39 +254,36 @@ export function CannedReplyManager() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="title">Title</Label>
+              <Label htmlFor="title" className="text-muted-foreground text-xs uppercase tracking-wider font-bold">Title</Label>
               <Input
                 id="title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g. Welcome Message"
-                className="border-slate-700 bg-slate-800"
+                className="border-border bg-background"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="shortcut">
-                Shortcut <span className="text-xs text-slate-500">(optional)</span>
+              <Label htmlFor="shortcut" className="text-muted-foreground text-xs uppercase tracking-wider font-bold">
+                Shortcut <span className="text-[10px] font-normal lowercase tracking-normal">(optional)</span>
               </Label>
               <Input
                 id="shortcut"
                 value={shortcut}
                 onChange={(e) => setShortcut(e.target.value)}
                 placeholder="/hello"
-                className="border-slate-700 bg-slate-800"
+                className="border-border bg-background font-mono text-xs"
               />
-              <p className="text-[10px] text-slate-500">
-                Type this in the inbox to quickly insert the reply.
-              </p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="content">Content</Label>
+              <Label htmlFor="content" className="text-muted-foreground text-xs uppercase tracking-wider font-bold">Content</Label>
               <Textarea
                 id="content"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 placeholder="The message to send..."
                 rows={4}
-                className="border-slate-700 bg-slate-800"
+                className="border-border bg-background"
               />
             </div>
           </div>
@@ -294,14 +291,14 @@ export function CannedReplyManager() {
             <Button
               variant="outline"
               onClick={() => setDialogOpen(false)}
-              className="border-slate-700 text-slate-300"
+              className="border-border text-muted-foreground hover:bg-accent"
             >
               Cancel
             </Button>
             <Button
               onClick={handleSave}
               disabled={saving}
-              className="bg-primary text-primary-foreground"
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save Reply
@@ -312,18 +309,18 @@ export function CannedReplyManager() {
 
       {/* Delete Confirmation */}
       <Dialog open={deleteConfirmOpen} onOpenChange={(open: boolean) => !open && setDeleteConfirmOpen(false)}>
-        <DialogContent className="border-slate-800 bg-slate-900 text-white sm:max-w-sm">
+        <DialogContent className="border-border bg-card text-foreground sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Delete Canned Reply</DialogTitle>
-            <DialogDescription className="text-slate-400">
-              Are you sure you want to delete <span className="text-white font-medium">{deleteTarget?.title}</span>? This action cannot be undone.
+            <DialogDescription className="text-muted-foreground">
+              Are you sure you want to delete <span className="text-foreground font-medium">{deleteTarget?.title}</span>? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button
               variant="outline"
               onClick={() => setDeleteConfirmOpen(false)}
-              className="border-slate-700 text-slate-300"
+              className="border-border text-muted-foreground hover:bg-accent"
             >
               Cancel
             </Button>

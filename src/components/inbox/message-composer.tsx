@@ -186,11 +186,11 @@ export function MessageComposer({
   );
 
   return (
-    <div className="relative border-t border-slate-800 bg-slate-900 p-3">
+    <div className="relative border-t border-border bg-background p-3">
       {/* Canned Reply Picker */}
       {showCannedPicker && (
-        <div className="absolute bottom-full left-0 mb-2 w-80 overflow-hidden rounded-lg border border-slate-700 bg-slate-800 shadow-2xl z-50">
-          <div className="p-2 border-b border-slate-700">
+        <div className="absolute bottom-full left-0 mb-2 w-80 overflow-hidden rounded-lg border border-border bg-card shadow-2xl z-50">
+          <div className="p-2 border-b border-border">
             <Input
               placeholder="Search quick replies..."
               value={cannedSearch}
@@ -198,7 +198,7 @@ export function MessageComposer({
                 setCannedSearch(e.target.value);
                 setSelectedIndex(0);
               }}
-              className="h-8 bg-slate-900 border-slate-600 text-sm focus-visible:ring-primary/50"
+              className="h-8 bg-muted border-input text-sm focus-visible:ring-primary/50"
               autoFocus
             />
           </div>
@@ -208,7 +208,7 @@ export function MessageComposer({
                 key={reply.id}
                 className={cn(
                   "w-full px-3 py-2 text-left transition-colors",
-                  selectedIndex === idx ? "bg-primary/10" : "hover:bg-slate-700/50"
+                  selectedIndex === idx ? "bg-primary/10" : "hover:bg-accent"
                 )}
                 onClick={() => insertCanned(reply.content)}
                 onMouseEnter={() => setSelectedIndex(idx)}
@@ -216,21 +216,21 @@ export function MessageComposer({
                 <div className="flex items-center justify-between">
                   <span className={cn(
                     "text-sm font-medium",
-                    selectedIndex === idx ? "text-primary" : "text-white"
+                    selectedIndex === idx ? "text-primary" : "text-foreground"
                   )}>
                     {reply.title}
                   </span>
                   {reply.shortcut && (
-                    <span className="text-[10px] font-mono text-slate-500 bg-slate-900 px-1 rounded">
+                    <span className="text-[10px] font-mono text-muted-foreground bg-muted px-1 rounded">
                       {reply.shortcut}
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-slate-400 truncate mt-0.5">{reply.content}</p>
+                <p className="text-xs text-muted-foreground truncate mt-0.5">{reply.content}</p>
               </button>
             ))}
             {filteredCanned.length === 0 && (
-              <p className="px-3 py-4 text-center text-sm text-slate-500">
+              <p className="px-3 py-4 text-center text-sm text-muted-foreground">
                 No quick replies found
               </p>
             )}
@@ -242,7 +242,7 @@ export function MessageComposer({
         <div className="mb-3 flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm">
           <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
           <div className="flex-1 space-y-2">
-            <p className="text-slate-200 leading-relaxed">{aiSuggestion}</p>
+            <p className="text-foreground leading-relaxed">{aiSuggestion}</p>
             <div className="flex gap-2">
               <Button
                 size="sm"
@@ -260,7 +260,7 @@ export function MessageComposer({
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-7 px-3 text-xs font-medium text-slate-500 hover:text-slate-300"
+                className="h-7 px-3 text-xs font-medium text-muted-foreground hover:text-foreground"
                 onClick={() => setAiSuggestion(null)}
               >
                 Dismiss
@@ -301,7 +301,7 @@ export function MessageComposer({
           <Button
             variant="ghost"
             size="sm"
-            className="h-9 w-9 p-0 text-slate-400 hover:text-white"
+            className="h-9 w-9 p-0 text-muted-foreground hover:text-foreground"
             onClick={onOpenTemplates}
             title="Send template"
           >
@@ -311,7 +311,7 @@ export function MessageComposer({
           <Button
             variant="ghost"
             size="sm"
-            className="h-9 w-9 p-0 text-slate-400 hover:text-white"
+            className="h-9 w-9 p-0 text-muted-foreground hover:text-foreground"
             onClick={() => setProductModalOpen(true)}
             title="Send product catalog"
           >
@@ -323,7 +323,7 @@ export function MessageComposer({
             size="sm"
             className={cn(
               "h-9 w-9 p-0 transition-colors",
-              showCannedPicker ? "text-primary bg-primary/10" : "text-slate-400 hover:text-white"
+              showCannedPicker ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground"
             )}
             onClick={() => setShowCannedPicker((p) => !p)}
             title="Quick replies (/)"
@@ -345,7 +345,7 @@ export function MessageComposer({
           disabled={sessionExpired}
           rows={1}
           className={cn(
-            "flex-1 resize-none rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-sm text-white placeholder-slate-500 outline-none transition-colors focus:border-primary/50",
+            "flex-1 resize-none rounded-xl border border-input bg-muted px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-primary/50",
             sessionExpired && "cursor-not-allowed opacity-50"
           )}
         />
@@ -356,7 +356,7 @@ export function MessageComposer({
             size="sm"
             onClick={handleAiSuggest}
             disabled={aiLoading || sessionExpired}
-            className="h-9 border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700 px-3 transition-all"
+            className="h-9 border-input bg-muted text-muted-foreground hover:bg-accent px-3 transition-all"
           >
             {aiLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -377,7 +377,7 @@ export function MessageComposer({
         </div>
       </div>
 
-      <p className="mt-1 pl-11 text-[10px] text-slate-600">
+      <p className="mt-1 pl-11 text-[10px] text-muted-foreground/50">
         Type &apos;/&apos; for quick replies
       </p>
 

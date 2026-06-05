@@ -37,13 +37,15 @@ export function CompanyModal({ open, onOpenChange, company, onSaved }: CompanyMo
 
   useEffect(() => {
     if (open) {
-      setName(company?.name ?? '');
-      setDomain(company?.domain ?? '');
-      setIndustry(company?.industry ?? '');
-      setWebsite(company?.website ?? '');
-      setPhone(company?.phone ?? '');
-      setAddress(company?.address ?? '');
-      setNotes(company?.notes ?? '');
+      setTimeout(() => {
+        setName(company?.name ?? '');
+        setDomain(company?.domain ?? '');
+        setIndustry(company?.industry ?? '');
+        setWebsite(company?.website ?? '');
+        setPhone(company?.phone ?? '');
+        setAddress(company?.address ?? '');
+        setNotes(company?.notes ?? '');
+      }, 0);
     }
   }, [open, company]);
 

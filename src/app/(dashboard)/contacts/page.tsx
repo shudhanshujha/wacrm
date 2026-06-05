@@ -274,41 +274,59 @@ export default function ContactsPage() {
         </div>
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-        <Input
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            // Reset pagination when the query changes — the result
-            // set shrinks/grows, page N may no longer be valid.
-            setPage(0);
+      {/* Filters & Search */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+        <div className="relative max-w-sm flex-1 w-full">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(0);
+            }}
+            placeholder="Search by name, phone, or email..."
+            className="pl-8 bg-muted border-border text-foreground placeholder:text-muted-foreground"
+          />
+        </div>
+        
+        <Select 
+          value={companyFilter} 
+          onValueChange={(val) => {
+            if (val) {
+              setCompanyFilter(val);
+              setPage(0);
+            }
           }}
-          placeholder="Search by name, phone, or email..."
-          className="pl-8 bg-muted border-border text-foreground placeholder:text-muted-foreground"
-        />
+        >
+          <SelectTrigger className="w-full sm:w-[200px] border-border bg-muted text-foreground">
+            <SelectValue placeholder="All Companies" />
+          </SelectTrigger>
+          <SelectContent className="border-border bg-card text-foreground">
+            <SelectItem value="all">All Companies</SelectItem>
+            {companies.map(c => (
+              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Table */}
-      <div className="rounded-lg border border-border overflow-hidden">
+      <div className="rounded-lg border border-border overflow-hidden bg-card/30">
         <Table>
           <TableHeader>
             <TableRow className="border-border hover:bg-transparent">
-              <TableHead className="text-muted-foreground">Name</TableHead>
-              <TableHead className="text-muted-foreground">Phone</TableHead>
-              <TableHead className="text-muted-foreground hidden md:table-cell">Email</TableHead>
-              <TableHead className="text-muted-foreground hidden lg:table-cell">Company</TableHead>
+              <TableHead className="text-muted-foreground">Contact</TableHead>
+              <TableHead className="text-muted-foreground hidden md:table-cell">Info</TableHead>
               <TableHead className="text-muted-foreground hidden md:table-cell">Status</TableHead>
-              <TableHead className="text-muted-foreground hidden md:table-cell">Tags</TableHead>
-              <TableHead className="text-muted-foreground hidden lg:table-cell">Created</TableHead>
+              <TableHead className="text-muted-foreground hidden sm:table-cell">Tags</TableHead>
+              <TableHead className="text-muted-foreground hidden lg:table-cell tabular-nums">Created</TableHead>
               <TableHead className="text-muted-foreground w-12" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow className="border-border">
-                <TableCell colSpan={7} className="text-center py-12">
+                <TableCell colSpan={6} className="text-center py-12">
                   <div className="flex flex-col items-center gap-2">
                     <Loader2 className="size-6 animate-spin text-primary" />
                     <p className="text-sm text-muted-foreground">Loading contacts...</p>
@@ -317,23 +335,12 @@ export default function ContactsPage() {
               </TableRow>
             ) : contacts.length === 0 ? (
               <TableRow className="border-border">
-                <TableCell colSpan={7} className="text-center py-12">
+                <TableCell colSpan={6} className="text-center py-12">
                   <div className="flex flex-col items-center gap-2">
                     <Users className="size-8 text-muted-foreground" />
                     <p className="text-sm text-muted-foreground">
                       {search ? 'No contacts match your search.' : 'No contacts yet.'}
                     </p>
-                    {!search && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={openAddForm}
-                        className="mt-2 border-border text-muted-foreground hover:bg-accent"
-                      >
-                        <Plus className="size-3.5" />
-                        Add your first contact
-                      </Button>
-                    )}
                   </div>
                 </TableCell>
               </TableRow>
@@ -341,57 +348,76 @@ export default function ContactsPage() {
               contacts.map((contact) => (
                 <TableRow
                   key={contact.id}
-                  className="border-border hover:bg-accent/50 cursor-pointer"
+                  className="border-border hover:bg-accent/30 cursor-pointer transition-colors"
                   onClick={() => openDetail(contact.id)}
                 >
-                  <TableCell className="text-foreground font-medium">
-                    {contact.name || <span className="text-muted-foreground italic">Unnamed</span>}
+                  <TableCell>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-foreground font-semibold truncate">
+                        {contact.name || <span className="text-muted-foreground italic">Unnamed</span>}
+                      </span>
+                      <span className="text-[11px] font-mono text-muted-foreground">
+                        {contact.phone}
+                      </span>
+                    </div>
                   </TableCell>
-                  <TableCell className="text-muted-foreground font-mono text-xs">
-                    {contact.phone}
+                  <TableCell className="hidden md:table-cell">
+                    <div className="flex flex-col min-w-0 text-xs gap-0.5">
+                      {contact.email && (
+                        <span className="text-muted-foreground truncate">{contact.email}</span>
+                      )}
+                      {contact.company_data ? (
+                        <Link 
+                          href={`/companies/${contact.company_data.id}`} 
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-primary hover:underline truncate"
+                        >
+                          {contact.company_data.name}
+                        </Link>
+                      ) : contact.company && (
+                        <span className="text-muted-foreground/60 truncate">{contact.company} (legacy)</span>
+                      )}
+                    </div>
                   </TableCell>
-                  <TableCell className="text-muted-foreground hidden md:table-cell text-sm">
-                    {contact.email || <span className="text-muted-foreground">-</span>}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground hidden lg:table-cell text-sm">
-                    {contact.company || <span className="text-muted-foreground">-</span>}
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell text-xs">
+                  <TableCell className="hidden md:table-cell">
                     {contact.whatsapp_opted_out ? (
-                      <span className="text-red-400 flex items-center gap-1">
+                      <span className="inline-flex items-center gap-1 text-[10px] uppercase font-bold text-red-400/80">
                         <Ban className="size-3" />
                         Opted out
                       </span>
                     ) : (
-                      <span className="text-green-400">Opted in</span>
+                      <span className="inline-flex items-center gap-1 text-[10px] uppercase font-bold text-green-400/80">
+                        Opted in
+                      </span>
                     )}
                   </TableCell>
-                  <TableCell className="hidden md:table-cell">
+                  <TableCell className="hidden sm:table-cell">
                     <div className="flex flex-wrap gap-1">
                       {contact.tags && contact.tags.length > 0 ? (
-                        contact.tags.slice(0, 3).map((tag) => (
+                        contact.tags.slice(0, 2).map((tag) => (
                           <span
                             key={tag.id}
-                            className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
+                            className="inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-tight"
                             style={{
-                              backgroundColor: tag.color + '20',
+                              backgroundColor: tag.color + '15',
                               color: tag.color,
+                              border: `1px solid ${tag.color}30`
                             }}
                           >
                             {tag.name}
                           </span>
                         ))
                       ) : (
-                        <span className="text-muted-foreground text-xs">-</span>
+                        <span className="text-muted-foreground/20">—</span>
                       )}
-                      {contact.tags && contact.tags.length > 3 && (
-                        <span className="text-[10px] text-muted-foreground">
-                          +{contact.tags.length - 3}
+                      {contact.tags && contact.tags.length > 2 && (
+                        <span className="text-[9px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
+                          +{contact.tags.length - 2}
                         </span>
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="text-muted-foreground text-xs hidden lg:table-cell">
+                  <TableCell className="text-muted-foreground text-[11px] hidden lg:table-cell tabular-nums">
                     {new Date(contact.created_at).toLocaleDateString('en-US', {
                       month: 'short',
                       day: 'numeric',
@@ -404,17 +430,17 @@ export default function ContactsPage() {
                         render={
                           <Button
                             variant="ghost"
-                            size="icon-sm"
-                            className="text-muted-foreground hover:text-foreground"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
                             onClick={(e) => e.stopPropagation()}
-                          />
+                          >
+                            <MoreHorizontal className="size-4" />
+                          </Button>
                         }
-                      >
-                        <MoreHorizontal className="size-4" />
-                      </DropdownMenuTrigger>
+                      />
                       <DropdownMenuContent
                         align="end"
-                        className="bg-card border-border"
+                        className="bg-card border-border text-foreground"
                       >
                         <DropdownMenuItem
                           onClick={(e) => {
@@ -423,18 +449,18 @@ export default function ContactsPage() {
                           }}
                           className="text-muted-foreground focus:bg-accent focus:text-accent-foreground"
                         >
-                          <Pencil className="size-4" />
+                          <Pencil className="size-4 mr-2" />
                           Edit
                         </DropdownMenuItem>
                         <DropdownMenuSeparator className="bg-border" />
                         <DropdownMenuItem
-                          variant="destructive"
                           onClick={(e) => {
                             e.stopPropagation();
                             confirmDelete(contact);
                           }}
+                          className="text-red-400 focus:bg-red-500/10 focus:text-red-400"
                         >
-                          <Trash2 className="size-4" />
+                          <Trash2 className="size-4 mr-2" />
                           Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>

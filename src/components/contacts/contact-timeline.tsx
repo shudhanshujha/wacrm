@@ -32,20 +32,20 @@ export function ContactTimeline({ contactId }: ContactTimelineProps) {
   
   if (items.length === 0) return (
     <div className="py-12 text-center">
-      <p className="text-sm text-slate-500">No activity yet.</p>
+      <p className="text-sm text-muted-foreground">No activity yet.</p>
     </div>
   );
 
   return (
     <div className="relative space-y-0 py-4">
       {/* Vertical line */}
-      <div className="absolute left-4 top-0 bottom-0 w-px bg-slate-800" />
+      <div className="absolute left-4 top-0 bottom-0 w-px bg-border" />
 
       {items.map((item, idx) => (
         <div key={item.id + idx} className="relative flex gap-4 pb-6 pl-10 last:pb-0">
           {/* Icon bubble */}
           <div className={cn(
-            "absolute left-0 flex h-8 w-8 items-center justify-center rounded-full border border-slate-800 bg-slate-900 shadow-sm z-10",
+            "absolute left-0 flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card shadow-sm z-10",
             item.type === 'broadcast' ? "ring-2 ring-blue-500/20" : 
             item.direction === 'inbound' ? "ring-2 ring-green-500/20" : "ring-2 ring-primary/20"
           )}>
@@ -59,15 +59,15 @@ export function ContactTimeline({ contactId }: ContactTimelineProps) {
           </div>
 
           {/* Content */}
-          <div className="min-w-0 flex-1 rounded-xl border border-slate-800 bg-slate-900/30 px-4 py-3 transition-colors hover:bg-slate-900/50">
+          <div className="min-w-0 flex-1 rounded-xl border border-border bg-muted/30 px-4 py-3 transition-colors hover:bg-accent">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 {item.type === 'message' ? (
-                  <p className="text-sm text-slate-200 line-clamp-3 leading-relaxed">
-                    {item.content || <span className="italic text-slate-500">(media message)</span>}
+                  <p className="text-sm text-foreground line-clamp-3 leading-relaxed">
+                    {item.content || <span className="italic text-muted-foreground">(media message)</span>}
                   </p>
                 ) : (
-                  <p className="text-sm text-slate-200">
+                  <p className="text-sm text-foreground">
                     Received Broadcast: <span className="font-semibold text-primary">{item.broadcast_name}</span>
                   </p>
                 )}
@@ -76,18 +76,18 @@ export function ContactTimeline({ contactId }: ContactTimelineProps) {
                 "shrink-0 text-[10px] uppercase tracking-wider font-bold h-5",
                 item.status === 'read' || item.status === 'replied' ? "border-green-500/30 text-green-400" :
                 item.status === 'failed' ? "border-red-500/30 text-red-400" :
-                "border-slate-700 text-slate-500"
+                "border-input text-muted-foreground"
               )}>
                 {item.status}
               </Badge>
             </div>
-            <div className="mt-2 flex items-center gap-1.5 text-[10px] font-medium text-slate-500 uppercase tracking-tight">
+            <div className="mt-2 flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground uppercase tracking-tight">
               <Clock className="h-3 w-3" />
               <span>{new Date(item.created_at).toLocaleString()}</span>
               {item.type === 'message' && (
                 <>
                   <span className="mx-1">•</span>
-                  <span className="text-slate-600">{item.direction}</span>
+                  <span className="text-muted-foreground/60">{item.direction}</span>
                 </>
               )}
             </div>

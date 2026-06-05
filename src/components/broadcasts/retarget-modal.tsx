@@ -134,15 +134,15 @@ export function RetargetModal({
                 onClick={() => setSelectedSegment(segment.type)}
                 className={`flex flex-col items-start rounded-lg border p-3 text-left transition-all ${
                   selectedSegment === segment.type
-                    ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                    : 'border-border bg-transparent hover:bg-accent'
+                    ? 'border-primary bg-primary/10 ring-1 ring-primary/30'
+                    : 'border-border bg-background hover:bg-accent'
                 }`}
               >
                 <div className="flex w-full items-center justify-between">
                   <span className="text-sm font-bold text-foreground">{segment.name}</span>
-                  <span className="text-xs font-medium text-primary">{segment.count}</span>
+                  <span className="text-xs font-semibold text-primary">{segment.count}</span>
                 </div>
-                <p className="mt-1 text-xs text-muted-foreground">{segment.description}</p>
+                <p className="mt-1 text-[11px] leading-tight text-muted-foreground">{segment.description}</p>
               </button>
             ))}
           </div>
@@ -153,7 +153,7 @@ export function RetargetModal({
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               placeholder="Retarget Broadcast Name"
-              className="border-border bg-background text-foreground"
+              className="border-border bg-background text-foreground placeholder:text-muted-foreground"
             />
           </div>
         </div>
@@ -162,7 +162,7 @@ export function RetargetModal({
           <Button
             variant="outline"
             onClick={onClose}
-            className="border-border text-muted-foreground"
+            className="border-border text-muted-foreground hover:bg-accent"
           >
             Cancel
           </Button>

@@ -13,26 +13,15 @@ export async function POST(req: NextRequest) {
   }
 
   const systemPrompt = `You are a helpful WhatsApp business assistant.
-You are helping a business agent reply to a customer named ${contactName}.
-${businessContext ? `Business context: ${businessContext}` : ''}
-Suggest ONE short, professional, friendly reply (max 3 sentences).
-Reply ONLY with the suggested message text — no preamble, no quotes, no explanation.`;
+  You are helping a business agent reply to a customer named ${contactName}.
+  ${businessContext ? `Business context: ${businessContext}` : ''}
+  Suggest ONE short, professional, friendly reply (max 3 sentences).
+  Reply ONLY with the suggested message text — no preamble, no quotes, no explanation.`;
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return NextResponse.json({ error: 'AI service unavailable (API key missing)' }, { status: 502 })
   }
-
-  // Format history for Gemini
-  // Gemini expects a series of { role: 'user' | 'model', parts: [{ text: string }] }
-  const contents = messages.slice(-10).map(m => ({
-    role: m.role === 'inbound' ? 'user' : 'model',
-    parts: [{ text: m.content }],
-  }))
-
-  // If the last message was outbound, Gemini might struggle with role alternating,
-  // so we ensure it ends on a user message or handle it gracefully.
-  // Actually, for suggestions, we want to prompt Gemini with the whole context.
 
   const fullPrompt = `${systemPrompt}\n\nConversation so far:\n${messages.slice(-10).map(m => `${m.role === 'inbound' ? 'Customer' : 'Agent'}: ${m.content}`).join('\n')}\n\nSuggested Reply:`;
 
