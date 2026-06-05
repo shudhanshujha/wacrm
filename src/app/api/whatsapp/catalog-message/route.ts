@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
 
   if (!conversation) return NextResponse.json({ error: 'Conversation not found' }, { status: 404 })
   
-  const phoneNumber = (conversation as any).contact?.phone
+  const phoneNumber = (conversation as unknown as { contact: { phone: string } }).contact?.phone
   if (!phoneNumber) return NextResponse.json({ error: 'Contact phone not found' }, { status: 400 })
 
   // Fetch account WhatsApp credentials

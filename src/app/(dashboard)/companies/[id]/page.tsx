@@ -22,21 +22,6 @@ import {
 
 export const dynamic = 'force-dynamic';
 
-interface ContactWithJoinedTags {
-  id: string;
-  name: string | null;
-  phone: string;
-  email: string | null;
-  whatsapp_opted_out: boolean;
-  contact_tags: {
-    tags: {
-      id: string;
-      name: string;
-      color: string;
-    } | null;
-  }[];
-}
-
 export default async function CompanyDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();

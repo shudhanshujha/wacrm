@@ -532,7 +532,7 @@ export function Step2SelectAudience({
                     </Select>
                     <Select
                       value={cond.customFieldOperator ?? 'is'}
-                      onValueChange={(val: string | null) => val && updateCondition(cond.id, { customFieldOperator: val as any })}
+                      onValueChange={(val: string | null) => val && updateCondition(cond.id, { customFieldOperator: val as CustomFieldOperator })}
                     >
                       <SelectTrigger className="h-9 w-[110px] border-input bg-muted text-xs text-foreground">
                         <SelectValue />
@@ -561,7 +561,7 @@ export function Step2SelectAudience({
                   <>
                     <Select
                       value={cond.contactField ?? 'name'}
-                      onValueChange={(val: string | null) => val && updateCondition(cond.id, { contactField: val as any })}
+                      onValueChange={(val: string | null) => val && updateCondition(cond.id, { contactField: val as 'name' | 'email' | 'company' | 'phone' })}
                     >
                       <SelectTrigger className="h-9 w-[110px] border-input bg-muted text-xs text-foreground">
                         <SelectValue />
@@ -575,7 +575,7 @@ export function Step2SelectAudience({
                     </Select>
                     <Select
                       value={cond.contactFieldOperator ?? 'contains'}
-                      onValueChange={(val: string | null) => val && updateCondition(cond.id, { contactFieldOperator: val as any })}
+                      onValueChange={(val: string | null) => val && updateCondition(cond.id, { contactFieldOperator: val as 'is_set' | 'is_not_set' | 'contains' })}
                     >
                       <SelectTrigger className="h-9 w-[110px] border-input bg-muted text-xs text-foreground">
                         <SelectValue />

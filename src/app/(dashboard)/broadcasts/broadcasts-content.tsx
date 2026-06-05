@@ -49,7 +49,7 @@ export default function BroadcastsContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  async function fetchBroadcasts() {
+  const fetchBroadcasts = useCallback(async () => {
     setLoading(true);
     const { data, error: err } = await supabase
       .from('broadcasts')
@@ -62,7 +62,7 @@ export default function BroadcastsContent() {
       setBroadcasts(data ?? []);
     }
     setLoading(false);
-  }
+  }, [supabase]);
 
   useEffect(() => {
     setTimeout(() => {
