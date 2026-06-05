@@ -549,12 +549,12 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
       const extractConfig = step.step_config as ExtractConfig
       if (!args.contactId) throw new Error('ai_extract needs a contact')
       
-      const result = await executeAiExtractStep(extractConfig, {
+      const { extracted } = await executeAiExtractStep(extractConfig, {
         inboundMessage: args.context.message_text ?? '',
         contactId: args.contactId,
       })
       
-      return `extracted ${Object.keys(result.extracted).length} fields`
+      return `extracted ${Object.keys(extracted).length} fields`
     }
 
     default:

@@ -473,7 +473,7 @@ export function Step2SelectAudience({
               <div key={cond.id} className="group relative flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/30 p-3 pr-10">
                 <Select
                   value={cond.type}
-                  onValueChange={(val: string | null) => val && updateCondition(cond.id, { type: val as any })}
+                  onValueChange={(val: string | null) => val && updateCondition(cond.id, { type: val as 'tag' | 'custom_field' | 'contact_field' })}
                 >
                   <SelectTrigger className="h-9 w-[130px] border-input bg-muted text-xs text-foreground">
                     <SelectValue />
@@ -489,7 +489,7 @@ export function Step2SelectAudience({
                   <>
                     <Select
                       value={cond.tagOperator ?? 'has'}
-                      onValueChange={(val: string | null) => val && updateCondition(cond.id, { tagOperator: val as any })}
+                      onValueChange={(val: string | null) => val && updateCondition(cond.id, { tagOperator: val as 'has' | 'does_not_have' })}
                     >
                       <SelectTrigger className="h-9 w-[120px] border-input bg-muted text-xs text-foreground">
                         <SelectValue />

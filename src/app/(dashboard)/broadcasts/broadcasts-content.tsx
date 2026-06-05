@@ -68,7 +68,7 @@ export default function BroadcastsContent() {
     setTimeout(() => {
       fetchBroadcasts();
     }, 0);
-  }, []);
+  }, [fetchBroadcasts]);
 
   const anySending = useMemo(() => {
     return broadcasts.some((b) => b.status === 'sending');

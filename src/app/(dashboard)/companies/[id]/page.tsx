@@ -1,4 +1,3 @@
-import { Suspense } from 'react';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
@@ -19,10 +18,24 @@ import {
   Phone,
   Briefcase,
   DollarSign,
-  Tag as TagIcon
 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
+
+interface ContactWithJoinedTags {
+  id: string;
+  name: string | null;
+  phone: string;
+  email: string | null;
+  whatsapp_opted_out: boolean;
+  contact_tags: {
+    tags: {
+      id: string;
+      name: string;
+      color: string;
+    } | null;
+  }[];
+}
 
 export default async function CompanyDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

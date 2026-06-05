@@ -130,7 +130,8 @@ export default function ContactsPage() {
     const { data, count, error } = await query;
 
     if (error) {
-      toast.error('Failed to load contacts');
+      console.error('[fetchContacts] Supabase error:', error);
+      toast.error(`Failed to load contacts: ${error.message}`);
       setLoading(false);
       return;
     }
@@ -165,16 +166,13 @@ export default function ContactsPage() {
 
     setContacts(enriched);
     setLoading(false);
-  }, [supabase, page, search, tagsMap, showOptedOut]);
+  }, [supabase, page, search, tagsMap, showOptedOut, companyFilter]);
 
-  // Load-once-on-mount-ish data fetches. Each setter inside runs
-  // inside an async promise completion (Supabase await), not
-  // synchronously in the effect body, so the cascade the lint rule
-  // warns about doesn't apply here.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchTags();
-  }, [fetchTags]);
+    fetchCompanies();
+  }, [fetchTags, fetchCompanies]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect

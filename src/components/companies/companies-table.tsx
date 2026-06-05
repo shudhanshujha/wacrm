@@ -30,7 +30,7 @@ export interface CompanyWithCount extends Company {
   contacts: [{ count: number }];
 }
 
-export function CompaniesTable({ initialCompanies }: { initialCompanies: any[] }) {
+export function CompaniesTable({ initialCompanies }: { initialCompanies: CompanyWithCount[] }) {
   const [companies, setCompanies] = useState<CompanyWithCount[]>(initialCompanies);
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -52,7 +52,7 @@ export function CompaniesTable({ initialCompanies }: { initialCompanies: any[] }
     if (error) {
       toast.error('Failed to refresh companies');
     } else {
-      setCompanies(data as any[]);
+      setCompanies((data as unknown as CompanyWithCount[]) ?? []);
     }
     setLoading(false);
   }

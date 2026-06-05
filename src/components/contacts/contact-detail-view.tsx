@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
-import Link from 'next/link';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CompanyModal } from '@/components/companies/company-modal';
 import type { Contact, Tag, ContactNote, CustomField, Deal, Company } from '@/types';

@@ -18,8 +18,7 @@ export async function POST(req: NextRequest) {
 
   if (!conversation) return NextResponse.json({ error: 'Conversation not found' }, { status: 404 })
   
-  // @ts-ignore - The dynamic join types can be tricky
-  const phoneNumber = conversation.contact?.phone
+  const phoneNumber = (conversation as any).contact?.phone
   if (!phoneNumber) return NextResponse.json({ error: 'Contact phone not found' }, { status: 400 })
 
   // Fetch account WhatsApp credentials
