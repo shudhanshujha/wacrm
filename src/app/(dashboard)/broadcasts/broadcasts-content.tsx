@@ -207,6 +207,7 @@ export default function BroadcastsContent() {
                 <TableHead className="hidden text-muted-foreground lg:table-cell">Read</TableHead>
                 <TableHead className="hidden text-muted-foreground xl:table-cell">Clicked</TableHead>
                 <TableHead className="text-muted-foreground">Status</TableHead>
+                <TableHead className="hidden text-muted-foreground md:table-cell">A/B</TableHead>
                 <TableHead className="hidden text-muted-foreground sm:table-cell">Date</TableHead>
                 <TableHead className="hidden text-muted-foreground md:table-cell">Scheduled For</TableHead>
               </TableRow>
@@ -262,6 +263,19 @@ export default function BroadcastsContent() {
                         )}
                         {status.label}
                       </span>
+                    </TableCell>
+                    <TableCell className="hidden text-muted-foreground md:table-cell">
+                      {broadcast.ab_variant === 'A' && (
+                        <span className="inline-flex items-center rounded-full border border-violet-800 bg-violet-900/40 px-2 py-0.5 text-[10px] font-medium text-violet-300">
+                          A/B · A
+                        </span>
+                      )}
+                      {broadcast.ab_variant === 'B' && (
+                        <span className="inline-flex items-center rounded-full border border-fuchsia-800 bg-fuchsia-900/40 px-2 py-0.5 text-[10px] font-medium text-fuchsia-300">
+                          A/B · B
+                        </span>
+                      )}
+                      {!broadcast.ab_variant && '-'}
                     </TableCell>
                     <TableCell className="hidden text-muted-foreground sm:table-cell">
                       {new Date(broadcast.created_at).toLocaleDateString()}

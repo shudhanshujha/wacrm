@@ -57,6 +57,11 @@ interface BroadcastPayload {
   template: MessageTemplate;
   audience: AudienceConfig;
   variables: Record<string, VariableMapping>;
+  abTestConfig?: {
+    parentId: string;
+    variant: 'A' | 'B';
+    splitPercent: number;
+  };
 }
 
 interface UseBroadcastSendingReturn {
@@ -396,6 +401,10 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
             customField: payload.audience.customField,
             excludeTagIds: payload.audience.excludeTagIds,
           },
+          ab_test_enabled: false,
+          ab_parent_id: payload.abTestConfig?.parentId ?? null,
+          ab_variant: payload.abTestConfig?.variant ?? null,
+          ab_split_percent: payload.abTestConfig?.splitPercent ?? null,
           status: 'sending',
           total_recipients: contacts.length,
           sent_count: 0,

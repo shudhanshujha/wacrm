@@ -12,11 +12,11 @@ export async function POST(req: NextRequest) {
     businessContext?: string
   }
 
-  const systemPrompt = `You are a helpful WhatsApp business assistant. `+
+  const systemPrompt = `You are a helpful WhatsApp business assistant.
 You are helping a business agent reply to a customer named ${contactName}.
 ${businessContext ? `Business context: ${businessContext}` : ''}
 Suggest ONE short, professional, friendly reply (max 3 sentences).
-Reply ONLY with the suggested message text — no preamble, no quotes, no explanation.`
+Reply ONLY with the suggested message text — no preamble, no quotes, no explanation.`;
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {

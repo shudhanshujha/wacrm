@@ -241,6 +241,10 @@ export interface Broadcast {
   template_variables?: Record<string, unknown>;
   audience_filter?: Record<string, unknown>;
   scheduled_at?: string;
+  ab_test_enabled?: boolean;
+  ab_parent_id?: string;
+  ab_variant?: 'A' | 'B';
+  ab_split_percent?: number;
   status: BroadcastStatus;
   total_recipients: number;
   sent_count: number;

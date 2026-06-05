@@ -19,6 +19,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import Link from 'next/link';
 import {
   ArrowLeft,
   Loader2,
@@ -34,6 +35,7 @@ import {
   Trash2,
   RefreshCw,
   MousePointerClick,
+  Beaker,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -150,6 +152,7 @@ export default function BroadcastDetailPage() {
   const broadcastId = params.id as string;
 
   const [broadcast, setBroadcast] = useState<Broadcast | null>(null);
+  const [variants, setVariants] = useState<Broadcast[]>([]);
   const [recipients, setRecipients] = useState<BroadcastRecipient[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -271,6 +274,21 @@ export default function BroadcastDetailPage() {
 
   const status = getBroadcastStatus(broadcast.status);
 
+  useEffect(() => {
+    async function fetchVariants() {
+      if (broadcast?.ab_test_enabled) {
+        const supabase = createClient();
+        const { data } = await supabase
+          .from('broadcasts')
+          .select('*')
+          .eq('ab_parent_id', broadcast.id)
+          .order('ab_variant');
+        if (data) setVariants(data);
+      }
+    }
+    fetchVariants();
+  }, [broadcast]);
+
   const funnelSteps: FunnelStep[] = [
     { label: 'Sent', value: broadcast.sent_count, color: 'bg-primary' },
     { label: 'Delivered', value: broadcast.delivered_count, color: 'bg-teal-500' },
@@ -302,8 +320,12 @@ export default function BroadcastDetailPage() {
               </span>
             </div>
             <div className="mt-1 flex items-center gap-3 text-sm text-muted-foreground">
-              <span>Template: {broadcast.template_name}</span>
-              <span>-</span>
+              {broadcast.template_name && (
+                <>
+                  <span>Template: {broadcast.template_name}</span>
+                  <span>-</span>
+                </>
+              )}
               <span>
                 Created {new Date(broadcast.created_at).toLocaleDateString()}
               </span>
@@ -311,10 +333,6 @@ export default function BroadcastDetailPage() {
           </div>
         </div>
 
-        {/* Delete — inline-confirm pattern matches the pipeline-settings
-            "Delete Pipeline" flow. Mid-send broadcasts can't be deleted
-            because orphaning in-flight Meta messages would leave the
-            funnel inconsistent. */}
         {confirmDelete ? (
           <div className="flex items-center gap-2 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-sm">
             <span className="text-red-300">Delete this broadcast?</span>
@@ -354,6 +372,100 @@ export default function BroadcastDetailPage() {
           </Button>
         )}
       </div>
+
+      {broadcast.ab_parent_id && (
+        <div className="rounded-xl border border-blue-800 bg-blue-900/20 p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Beaker className="h-5 w-5 text-blue-400" />
+              <p className="text-sm font-medium text-blue-200">
+                This is Variant {broadcast.ab_variant} of an A/B test.
+              </p>
+            </div>
+            <Link href={`/broadcasts/${broadcast.ab_parent_id}`}>
+              <Button variant="outline" size="sm" className="border-blue-700 text-blue-300 hover:bg-blue-900/40">
+                View A/B Group
+              </Button>
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {broadcast.ab_test_enabled && variants.length > 0 && (
+        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4 space-y-4">
+          <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+            <Beaker className="h-5 w-5 text-fuchsia-400" />
+            <h2 className="text-sm font-semibold text-white">A/B Test Comparison</h2>
+          </div>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {variants.map((v) => {
+              const isWinner = (metric: keyof Broadcast, higherIsBetter = true) => {
+                const other = variants.find(ov => ov.id !== v.id);
+                if (!other) return false;
+                
+                // For rate metrics, calculate the percentage
+                let val1 = v[metric] as number;
+                let val2 = other[metric] as number;
+                
+                if (['delivered_count', 'read_count', 'replied_count', 'clicked_count'].includes(metric)) {
+                   val1 = v.total_recipients > 0 ? (val1 / v.total_recipients) : 0;
+                   val2 = other.total_recipients > 0 ? (val2 / other.total_recipients) : 0;
+                }
+
+                if (val1 === val2) return false;
+                return higherIsBetter ? val1 > val2 : val1 < val2;
+              };
+
+              return (
+                <div key={v.id} className="rounded-lg border border-slate-800 bg-slate-900/50 p-4">
+                  <div className="mb-4 flex items-center justify-between">
+                    <div>
+                      <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${
+                        v.ab_variant === 'A' ? 'border-violet-800 bg-violet-900/40 text-violet-300' : 'border-fuchsia-800 bg-fuchsia-900/40 text-fuchsia-300'
+                      }`}>
+                        Variant {v.ab_variant}
+                      </span>
+                      <p className="mt-1 text-xs text-slate-400 truncate max-w-[200px]">{v.template_name}</p>
+                    </div>
+                    <Link href={`/broadcasts/${v.id}`}>
+                      <Button variant="ghost" size="sm" className="h-7 text-xs text-slate-400 hover:text-white">
+                        View Details
+                      </Button>
+                    </Link>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-slate-400">Total Recipients</span>
+                      <span className="font-medium text-white">{v.total_recipients}</span>
+                    </div>
+                    <div className={`flex items-center justify-between text-sm rounded-md px-2 py-1 -mx-2 ${isWinner('sent_count') ? 'bg-green-500/10 text-green-400' : ''}`}>
+                      <span className="text-slate-400">Sent</span>
+                      <span className="font-medium">{v.sent_count}</span>
+                    </div>
+                    <div className={`flex items-center justify-between text-sm rounded-md px-2 py-1 -mx-2 ${isWinner('delivered_count') ? 'bg-green-500/10 text-green-400' : ''}`}>
+                      <span className="text-slate-400">Delivered</span>
+                      <span className="font-medium">{v.total_recipients > 0 ? Math.round((v.delivered_count / v.total_recipients) * 100) : 0}%</span>
+                    </div>
+                    <div className={`flex items-center justify-between text-sm rounded-md px-2 py-1 -mx-2 ${isWinner('read_count') ? 'bg-green-500/10 text-green-400' : ''}`}>
+                      <span className="text-slate-400">Read</span>
+                      <span className="font-medium">{v.total_recipients > 0 ? Math.round((v.read_count / v.total_recipients) * 100) : 0}%</span>
+                    </div>
+                    <div className={`flex items-center justify-between text-sm rounded-md px-2 py-1 -mx-2 ${isWinner('clicked_count') ? 'bg-green-500/10 text-green-400' : ''}`}>
+                      <span className="text-slate-400">Clicked</span>
+                      <span className="font-medium">{v.total_recipients > 0 ? Math.round(((v.clicked_count ?? 0) / v.total_recipients) * 100) : 0}%</span>
+                    </div>
+                    <div className={`flex items-center justify-between text-sm rounded-md px-2 py-1 -mx-2 ${isWinner('replied_count') ? 'bg-green-500/10 text-green-400' : ''}`}>
+                      <span className="text-slate-400">Replied</span>
+                      <span className="font-medium">{v.total_recipients > 0 ? Math.round((v.replied_count / v.total_recipients) * 100) : 0}%</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Stats — 7 cards: Total / Sent / Delivered / Read / Clicked / Replied / Failed */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
