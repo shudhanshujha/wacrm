@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 
 export const dynamic = "force-dynamic"
 
-import { Settings, MessageSquare, Tag, User, Palette, MessageSquareQuote } from 'lucide-react';
+import { Settings, MessageSquare, Tag, User, Palette, MessageSquareQuote, ShoppingBag } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { WhatsAppConfig } from '@/components/settings/whatsapp-config';
 import { TemplateManager } from '@/components/settings/template-manager';
@@ -15,10 +15,12 @@ import { PasswordForm } from '@/components/settings/password-form';
 import { SessionsCard } from '@/components/settings/sessions-card';
 import { AppearancePanel } from '@/components/settings/appearance-panel';
 import { CannedReplyManager } from '@/components/settings/canned-reply-manager';
+import { CatalogManager } from '@/components/settings/catalog-manager';
 
 const TAB_VALUES = [
   'profile',
   'whatsapp',
+  'catalog',
   'templates',
   'canned-replies',
   'tags',
@@ -74,6 +76,13 @@ function SettingsContent() {
             WhatsApp Config
           </TabsTrigger>
           <TabsTrigger
+            value="catalog"
+            className="data-active:bg-slate-800 data-active:text-primary text-slate-400"
+          >
+            <ShoppingBag className="size-4" />
+            Catalog
+          </TabsTrigger>
+          <TabsTrigger
             value="templates"
             className="data-active:bg-slate-800 data-active:text-primary text-slate-400"
           >
@@ -111,6 +120,10 @@ function SettingsContent() {
 
         <TabsContent value="whatsapp">
           <WhatsAppConfig />
+        </TabsContent>
+
+        <TabsContent value="catalog">
+          <CatalogManager />
         </TabsContent>
 
         <TabsContent value="templates">

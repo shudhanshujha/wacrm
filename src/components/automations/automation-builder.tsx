@@ -24,10 +24,13 @@ import {
   Loader2,
   ArrowDown,
   ArrowUp,
+  Sparkles,
+  Scan,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import {
@@ -90,6 +93,9 @@ const STEP_META: Record<AutomationStepType, StepMeta> = {
   condition: { label: "Condition (If/Else)", icon: GitBranch, border: "border-l-amber-500" },
   send_webhook: { label: "Send Webhook", icon: Webhook, border: "border-l-primary" },
   human_handover: { label: "Human Handover", icon: UserCheck, border: "border-l-primary" },
+  ai_reply: { label: "AI Reply", icon: Sparkles, border: "border-l-violet-500" },
+  ai_classify: { label: "AI Classify", icon: GitBranch, border: "border-l-amber-400" },
+  ai_extract: { label: "AI Extract", icon: Scan, border: "border-l-cyan-400" },
   close_conversation: { label: "Close Conversation", icon: CircleSlash, border: "border-l-primary" },
 }
 
@@ -105,6 +111,9 @@ const ADDABLE_STEPS: AutomationStepType[] = [
   "condition",
   "send_webhook",
   "human_handover",
+  "ai_reply",
+  "ai_classify",
+  "ai_extract",
   "close_conversation",
 ]
 
@@ -978,6 +987,215 @@ function StepEditor({
           </FieldBlock>
         </>
       )
+    case "ai_reply":
+      return (
+        <div className="space-y-4">
+          <div className="rounded-lg border border-violet-800 bg-violet-900/20 p-3 text-sm text-violet-300">
+            This step uses Gemini 1.5 Flash. Requires GEMINI_API_KEY in your environment.
+          </div>
+          <FieldBlock label="System Prompt">
+            <Textarea
+              value={(cfg.system_prompt as string) ?? ""}
+              onChange={(e) => set({ system_prompt: e.target.value })}
+              placeholder="You are a helpful customer support agent..."
+              className="min-h-24 bg-slate-800 text-white"
+            />
+          </FieldBlock>
+          <div className="grid grid-cols-2 gap-2">
+            <FieldBlock label="Max Tokens">
+              <Input
+                type="number"
+                min={50}
+                max={1000}
+                value={(cfg.max_tokens as number) ?? 300}
+                onChange={(e) => set({ max_tokens: Number(e.target.value) })}
+                className="bg-slate-800 text-white"
+              />
+            </FieldBlock>
+            <FieldBlock label="Context Messages">
+              <Input
+                type="number"
+                min={1}
+                max={30}
+                value={(cfg.context_messages as number) ?? 10}
+                onChange={(e) => set({ context_messages: Number(e.target.value) })}
+                className="bg-slate-800 text-white"
+              />
+            </FieldBlock>
+          </div>
+          <FieldBlock label="Fallback Message">
+            <Textarea
+              value={(cfg.fallback_message as string) ?? ""}
+              onChange={(e) => set({ fallback_message: e.target.value })}
+              placeholder="I'm sorry, I couldn't process that. Please try again."
+              className="min-h-16 bg-slate-800 text-white"
+            />
+          </FieldBlock>
+        </div>
+      )
+    case "ai_classify":
+      const categories = (cfg.categories as Array<{ id: string; label: string; description: string }>) ?? []
+      return (
+        <div className="space-y-4">
+          <div className="rounded-lg border border-amber-800 bg-amber-900/20 p-3 text-sm text-amber-300">
+            This step uses Gemini 1.5 Flash to classify intent. Requires GEMINI_API_KEY.
+          </div>
+          <div className="space-y-3">
+            <Label className="text-xs font-medium text-slate-400">Categories</Label>
+            {categories.map((cat, i) => (
+              <div key={i} className="relative rounded-md border border-slate-700 bg-slate-800 p-3 pr-10">
+                <div className="mb-2 grid grid-cols-2 gap-2">
+                  <Input
+                    placeholder="ID (e.g. refund)"
+                    value={cat.id}
+                    onChange={(e) => {
+                      const copy = [...categories]
+                      copy[i].id = e.target.value
+                      set({ categories: copy })
+                    }}
+                    className="h-8 bg-slate-900 text-xs text-white"
+                  />
+                  <Input
+                    placeholder="Label (e.g. Refund Request)"
+                    value={cat.label}
+                    onChange={(e) => {
+                      const copy = [...categories]
+                      copy[i].label = e.target.value
+                      set({ categories: copy })
+                    }}
+                    className="h-8 bg-slate-900 text-xs text-white"
+                  />
+                </div>
+                <Input
+                  placeholder="Description (optional hints for AI)"
+                  value={cat.description}
+                  onChange={(e) => {
+                    const copy = [...categories]
+                    copy[i].description = e.target.value
+                    set({ categories: copy })
+                  }}
+                  className="h-8 bg-slate-900 text-xs text-white"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const copy = [...categories]
+                    copy.splice(i, 1)
+                    set({ categories: copy })
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-red-400"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const copy = [...categories, { id: "", label: "", description: "" }]
+                set({ categories: copy })
+              }}
+              className="w-full border-dashed border-slate-700 text-slate-400 hover:text-white"
+            >
+              <Plus className="mr-2 h-4 w-4" /> Add Category
+            </Button>
+          </div>
+          <FieldBlock label="Fallback Category ID">
+            <select
+              value={(cfg.fallback_category_id as string) ?? ""}
+              onChange={(e) => set({ fallback_category_id: e.target.value })}
+              className="w-full rounded-md border border-slate-700 bg-slate-800 px-2 py-1.5 text-sm text-white focus:outline-none"
+            >
+              <option value="">Select fallback...</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.label || c.id}
+                </option>
+              ))}
+            </select>
+          </FieldBlock>
+          <p className="text-xs text-slate-500 italic">
+            After this step, use a Condition step checking variable &apos;ai_category&apos; to route to different branches.
+          </p>
+        </div>
+      )
+    case "ai_extract":
+      const extFields = (cfg.fields as Array<{ key: string; label: string; type: string }>) ?? []
+      return (
+        <div className="space-y-4">
+          <div className="rounded-lg border border-cyan-800 bg-cyan-900/20 p-3 text-sm text-cyan-300">
+            This step uses Gemini 1.5 Flash to extract data. Requires GEMINI_API_KEY.
+          </div>
+          <div className="space-y-3">
+            <Label className="text-xs font-medium text-slate-400">Fields to Extract</Label>
+            {extFields.map((f, i) => (
+              <div key={i} className="relative flex items-center gap-2 rounded-md border border-slate-700 bg-slate-800 p-2 pr-10">
+                <Input
+                  placeholder="Key"
+                  value={f.key}
+                  onChange={(e) => {
+                    const copy = [...extFields]
+                    copy[i].key = e.target.value
+                    set({ fields: copy })
+                  }}
+                  className="h-8 flex-1 bg-slate-900 text-xs text-white"
+                />
+                <Input
+                  placeholder="Label"
+                  value={f.label}
+                  onChange={(e) => {
+                    const copy = [...extFields]
+                    copy[i].label = e.target.value
+                    set({ fields: copy })
+                  }}
+                  className="h-8 flex-1 bg-slate-900 text-xs text-white"
+                />
+                <select
+                  value={f.type}
+                  onChange={(e) => {
+                    const copy = [...extFields]
+                    copy[i].type = e.target.value
+                    set({ fields: copy })
+                  }}
+                  className="h-8 rounded-md border border-slate-700 bg-slate-900 px-2 text-xs text-white focus:outline-none"
+                >
+                  <option value="text">Text</option>
+                  <option value="number">Number</option>
+                  <option value="date">Date</option>
+                </select>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const copy = [...extFields]
+                    copy.splice(i, 1)
+                    set({ fields: copy })
+                  }}
+                  className="absolute right-2 text-slate-500 hover:text-red-400"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const copy = [...extFields, { key: "", label: "", type: "text" }]
+                set({ fields: copy })
+              }}
+              className="w-full border-dashed border-slate-700 text-slate-400 hover:text-white"
+            >
+              <Plus className="mr-2 h-4 w-4" /> Add Field
+            </Button>
+          </div>
+          <p className="text-xs text-slate-500 italic">
+            Extracted values are saved to the contact&apos;s custom fields if they match field_name.
+          </p>
+        </div>
+      )
     case "close_conversation":
       return (
         <p className="text-xs text-slate-400">
@@ -1018,6 +1236,12 @@ function previewFor(step: BuilderStep): string {
       return (step.step_config.url as string) || "no url"
     case "human_handover":
       return "pausing bot and routing to agent"
+    case "ai_reply":
+      return "reply with Gemini"
+    case "ai_classify":
+      return "classify intent with Gemini"
+    case "ai_extract":
+      return "extract data with Gemini"
     default:
       return ""
   }

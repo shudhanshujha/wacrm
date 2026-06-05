@@ -16,13 +16,29 @@ export interface Profile {
   created_at: string;
 }
 
+export interface Company {
+  id: string;
+  user_id: string;
+  name: string;
+  domain?: string | null;
+  industry?: string | null;
+  website?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  notes?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Contact {
   id: string;
   user_id: string;
   phone: string;
   name?: string;
   email?: string;
-  company?: string;
+  company?: string; // legacy string field
+  company_id?: string | null;
+  company_data?: { id: string; name: string } | null; // joined data
   avatar_url?: string;
   whatsapp_opted_out?: boolean;
   opted_out_at?: string;
@@ -308,7 +324,10 @@ export type AutomationStepType =
   | 'condition'
   | 'send_webhook'
   | 'human_handover'
-  | 'close_conversation';
+  | 'close_conversation'
+  | 'ai_reply'
+  | 'ai_classify'
+  | 'ai_extract';
 
 export type AutomationLogStatus = 'success' | 'partial' | 'failed';
 
@@ -397,6 +416,30 @@ export interface HumanHandoverActionConfig {
   internalNote?: string;
 }
 
+export interface AiReplyConfig {
+  system_prompt?: string;
+  max_tokens?: number;
+  temperature?: number;
+  fallback_message?: string;
+  context_messages?: number;
+}
+
+export interface ClassifyConfig {
+  categories: Array<{ id: string; label: string; description: string }>;
+  fallback_category_id: string;
+  context_messages?: number;
+}
+
+export interface ExtractField {
+  key: string;
+  label: string;
+  type: 'text' | 'number' | 'date';
+}
+
+export interface ExtractConfig {
+  fields: ExtractField[];
+}
+
 export type AutomationStepConfig =
   | SendMessageStepConfig
   | SendTemplateStepConfig
@@ -408,6 +451,9 @@ export type AutomationStepConfig =
   | ConditionStepConfig
   | SendWebhookStepConfig
   | HumanHandoverActionConfig
+  | AiReplyConfig
+  | ClassifyConfig
+  | ExtractConfig
   | Record<string, never>
   | Record<string, unknown>;
 

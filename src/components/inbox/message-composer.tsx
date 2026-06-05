@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, KeyboardEvent, useEffect, useMemo } from "react";
-import { Send, LayoutTemplate, Sparkles, Loader2, BookOpen } from "lucide-react";
+import { Send, LayoutTemplate, Sparkles, Loader2, BookOpen, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ReplyQuote } from "./reply-quote";
@@ -9,6 +9,7 @@ import { Message, CannedReply } from "@/types";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
+import { ProductPickerModal } from "./product-picker-modal";
 
 interface ReplyDraft {
   /** Internal UUID of the message being replied to — sent back through onSend. */
@@ -18,6 +19,7 @@ interface ReplyDraft {
 }
 
 interface MessageComposerProps {
+  conversationId: string;
   sessionExpired: boolean;
   onSend: (text: string, replyToId?: string) => void;
   onOpenTemplates: () => void;
@@ -28,6 +30,7 @@ interface MessageComposerProps {
 }
 
 export function MessageComposer({
+  conversationId,
   sessionExpired,
   onSend,
   onOpenTemplates,
@@ -42,6 +45,7 @@ export function MessageComposer({
   const [aiLoading, setAiLoading] = useState(false);
   const [cannedReplies, setCannedReplies] = useState<CannedReply[]>([]);
   const [showCannedPicker, setShowCannedPicker] = useState(false);
+  const [productModalOpen, setProductModalOpen] = useState(false);
   const [cannedSearch, setCannedSearch] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -307,6 +311,16 @@ export function MessageComposer({
           <Button
             variant="ghost"
             size="sm"
+            className="h-9 w-9 p-0 text-slate-400 hover:text-white"
+            onClick={() => setProductModalOpen(true)}
+            title="Send product catalog"
+          >
+            <ShoppingBag className="h-4 w-4" />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
             className={cn(
               "h-9 w-9 p-0 transition-colors",
               showCannedPicker ? "text-primary bg-primary/10" : "text-slate-400 hover:text-white"
@@ -366,6 +380,14 @@ export function MessageComposer({
       <p className="mt-1 pl-11 text-[10px] text-slate-600">
         Type &apos;/&apos; for quick replies
       </p>
+
+      {/* Product Picker Modal */}
+      <ProductPickerModal
+        open={productModalOpen}
+        onOpenChange={setProductModalOpen}
+        conversationId={conversationId}
+        onSent={() => setProductModalOpen(false)}
+      />
     </div>
   );
 }

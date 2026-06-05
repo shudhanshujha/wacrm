@@ -1,0 +1,491 @@
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Switch } from '@/components/ui/switch';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Plus, Pencil, Trash2, Loader2, ShoppingBag, Info, ExternalLink } from 'lucide-react';
+import { toast } from 'sonner';
+// TODO: add image domain to next.config.js if needed
+// import Image from 'next/image';
+
+export interface CatalogProduct {
+  id: string;
+  user_id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  currency: string;
+  image_url: string | null;
+  retailer_id: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export function CatalogManager() {
+  const supabase = createClient();
+  const [products, setProducts] = useState<CatalogProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Form state
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<CatalogProduct | null>(null);
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [price, setPrice] = useState('0');
+  const [currency, setCurrency] = useState('INR');
+  const [imageUrl, setImageUrl] = useState('');
+  const [retailerId, setRetailerId] = useState('');
+  const [isActive, setIsActive] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  // Delete state
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<CatalogProduct | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const fetchProducts = useCallback(async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('catalog_products')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      toast.error('Failed to load products');
+    } else {
+      setProducts(data ?? []);
+    }
+    setLoading(false);
+  }, [supabase]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
+  function openAdd() {
+    setEditingProduct(null);
+    setName('');
+    setDescription('');
+    setPrice('0');
+    setCurrency('INR');
+    setImageUrl('');
+    setRetailerId('');
+    setIsActive(true);
+    setDialogOpen(true);
+  }
+
+  function openEdit(product: CatalogProduct) {
+    setEditingProduct(product);
+    setName(product.name);
+    setDescription(product.description ?? '');
+    setPrice(product.price.toString());
+    setCurrency(product.currency);
+    setImageUrl(product.image_url ?? '');
+    setRetailerId(product.retailer_id);
+    setIsActive(product.is_active);
+    setDialogOpen(true);
+  }
+
+  function confirmDelete(product: CatalogProduct) {
+    setDeleteTarget(product);
+    setDeleteConfirmOpen(true);
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    const { error } = await supabase
+      .from('catalog_products')
+      .update({ is_active: false })
+      .eq('id', deleteTarget.id);
+
+    if (error) {
+      toast.error('Failed to delete product');
+    } else {
+      toast.success('Product removed');
+      fetchProducts();
+    }
+    setDeleting(false);
+    setDeleteConfirmOpen(false);
+    setDeleteTarget(null);
+  }
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim() || !retailerId.trim() || isNaN(Number(price))) {
+      toast.error('Name, valid Price, and Retailer ID are required');
+      return;
+    }
+
+    setSaving(true);
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const user = session?.user;
+
+    if (!user) {
+      toast.error('Not authenticated');
+      setSaving(false);
+      return;
+    }
+
+    const payload = {
+      user_id: user.id,
+      name: name.trim(),
+      description: description.trim() || null,
+      price: Number(price),
+      currency,
+      image_url: imageUrl.trim() || null,
+      retailer_id: retailerId.trim(),
+      is_active: isActive,
+      updated_at: new Date().toISOString(),
+    };
+
+    let error;
+    if (editingProduct) {
+      const { error: err } = await supabase
+        .from('catalog_products')
+        .update(payload)
+        .eq('id', editingProduct.id);
+      error = err;
+    } else {
+      const { error: err } = await supabase.from('catalog_products').insert(payload);
+      error = err;
+    }
+
+    if (error) {
+      toast.error(`Failed to save product: ${error.message}`);
+    } else {
+      toast.success(editingProduct ? 'Product updated' : 'Product created');
+      setDialogOpen(false);
+      fetchProducts();
+    }
+    setSaving(false);
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-bold text-white">WhatsApp Catalog</h2>
+        <p className="mt-1 text-sm text-slate-400">
+          Manage your products to send interactive catalog messages.
+        </p>
+      </div>
+
+      <div className="flex items-start gap-3 rounded-lg border border-amber-800/50 bg-amber-900/20 p-4 text-sm text-amber-300">
+        <Info className="mt-0.5 h-4 w-4 shrink-0" />
+        <div className="space-y-1">
+          <p>
+            WhatsApp Catalog messages require a Meta Commerce Manager catalog linked to your WhatsApp Business Account.
+          </p>
+          <p>
+            The <strong>Retailer ID</strong> you enter here must exactly match the Retailer ID / Content ID of the product in your Meta catalog.
+          </p>
+          <a
+            href="https://business.facebook.com/commerce"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 font-medium text-amber-200 hover:underline"
+          >
+            Meta Commerce Manager <ExternalLink className="h-3 w-3" />
+          </a>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Button onClick={openAdd} className="bg-primary text-primary-foreground">
+            <Plus className="mr-2 h-4 w-4" />
+            Add Product
+          </Button>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-slate-800 bg-slate-900/50">
+        <Table>
+          <TableHeader>
+            <TableRow className="border-slate-800 hover:bg-transparent">
+              <TableHead className="w-16"></TableHead>
+              <TableHead className="text-slate-400">Name</TableHead>
+              <TableHead className="text-slate-400">Price</TableHead>
+              <TableHead className="text-slate-400">Retailer ID</TableHead>
+              <TableHead className="text-slate-400">Status</TableHead>
+              <TableHead className="w-24"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={6} className="h-32 text-center">
+                  <Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" />
+                </TableCell>
+              </TableRow>
+            ) : products.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="h-32 text-center text-slate-500">
+                  <div className="flex flex-col items-center gap-2">
+                    <ShoppingBag className="h-8 w-8 opacity-20" />
+                    <p>No products yet. Add your first product!</p>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : (
+              products.map((product) => (
+                <TableRow key={product.id} className="border-slate-800">
+                  <TableCell>
+                    <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded bg-slate-800 ring-1 ring-slate-700">
+                      {product.image_url ? (
+                        <img
+                          src={product.image_url}
+                          alt={product.name}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <ShoppingBag className="h-4 w-4 text-slate-500" />
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="font-medium text-white">{product.name}</div>
+                    {product.description && (
+                      <div className="truncate text-xs text-slate-500 max-w-[200px]">
+                        {product.description}
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-slate-300">
+                    {new Intl.NumberFormat('en-IN', {
+                      style: 'currency',
+                      currency: product.currency,
+                    }).format(product.price)}
+                  </TableCell>
+                  <TableCell>
+                    <code className="rounded bg-slate-800 px-1.5 py-0.5 text-xs text-slate-300">
+                      {product.retailer_id}
+                    </code>
+                  </TableCell>
+                  <TableCell>
+                    {product.is_active ? (
+                      <span className="inline-flex items-center rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] font-medium text-green-400">
+                        Active
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center rounded-full bg-slate-500/10 px-2 py-0.5 text-[10px] font-medium text-slate-400">
+                        Inactive
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openEdit(product)}
+                        className="h-8 w-8 text-slate-400 hover:text-white"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => confirmDelete(product)}
+                        className="h-8 w-8 text-slate-400 hover:text-red-400"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Add/Edit Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="border-slate-800 bg-slate-900 text-white sm:max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingProduct ? 'Edit Product' : 'Add Product'}
+            </DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Details for your WhatsApp catalog item.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSave} className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="name">Name *</Label>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Product Name"
+                className="border-slate-700 bg-slate-800 text-white"
+                required
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="price">Price *</Label>
+                <Input
+                  id="price"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  className="border-slate-700 bg-slate-800 text-white"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="currency">Currency</Label>
+                <Select value={currency} onValueChange={(val) => val && setCurrency(val)}>
+                  <SelectTrigger className="border-slate-700 bg-slate-800 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="border-slate-700 bg-slate-900 text-white">
+                    <SelectItem value="INR">INR (₹)</SelectItem>
+                    <SelectItem value="USD">USD ($)</SelectItem>
+                    <SelectItem value="EUR">EUR (€)</SelectItem>
+                    <SelectItem value="GBP">GBP (£)</SelectItem>
+                    <SelectItem value="AED">AED (د.إ)</SelectItem>
+                    <SelectItem value="SGD">SGD (S$)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="retailerId">
+                Retailer ID <span className="text-red-400">*</span>
+              </Label>
+              <Input
+                id="retailerId"
+                value={retailerId}
+                onChange={(e) => setRetailerId(e.target.value)}
+                placeholder="SKU-12345"
+                className="border-slate-700 bg-slate-800 font-mono text-xs text-white"
+                required
+              />
+              <p className="text-[10px] text-slate-500">
+                Must exactly match the Content ID in Meta Commerce Manager.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Product description..."
+                rows={3}
+                className="border-slate-700 bg-slate-800 text-white"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="imageUrl">Image URL</Label>
+              <Input
+                id="imageUrl"
+                type="url"
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                placeholder="https://..."
+                className="border-slate-700 bg-slate-800 text-white"
+              />
+              {imageUrl && (
+                <div className="mt-2 flex h-24 w-24 items-center justify-center overflow-hidden rounded-md border border-slate-700 bg-slate-800">
+                  <img src={imageUrl} alt="Preview" className="h-full w-full object-cover" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                </div>
+              )}
+            </div>
+            <div className="flex items-center justify-between rounded-lg border border-slate-700 bg-slate-800 p-3">
+              <div className="space-y-0.5">
+                <Label>Active Status</Label>
+                <p className="text-xs text-slate-400">Available to send in messages</p>
+              </div>
+              <Switch checked={isActive} onCheckedChange={setIsActive} />
+            </div>
+
+            <DialogFooter className="pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setDialogOpen(false)}
+                className="border-slate-700 text-slate-300"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={saving}
+                className="bg-primary text-primary-foreground"
+              >
+                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save Product
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <Dialog open={deleteConfirmOpen} onOpenChange={(open) => !open && setDeleteConfirmOpen(false)}>
+        <DialogContent className="border-slate-800 bg-slate-900 text-white sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Remove Product</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Are you sure you want to remove <span className="font-medium text-white">{deleteTarget?.name}</span>? 
+              This will mark it as inactive.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteConfirmOpen(false)}
+              className="border-slate-700 text-slate-300"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-red-600 text-white hover:bg-red-700"
+            >
+              {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Remove
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

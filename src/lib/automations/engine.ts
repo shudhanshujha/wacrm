@@ -14,9 +14,13 @@ import type {
   CreateDealStepConfig,
   AssignConversationStepConfig,
   HumanHandoverActionConfig,
+  AiReplyConfig,
 } from '@/types'
 import { supabaseAdmin } from './admin-client'
 import { engineSendText, engineSendTemplate } from './meta-send'
+import { executeAiReplyStep } from '../flow-steps/ai-reply-step'
+import { executeAiClassifyStep, ClassifyConfig } from '../flow-steps/ai-classify-step'
+import { executeAiExtractStep, ExtractConfig } from '../flow-steps/ai-extract-step'
 
 // ------------------------------------------------------------
 // Public API
@@ -488,6 +492,69 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
       }
 
       return `bot paused${cfg.assignToUserId ? `, assigned to ${cfg.assignToUserId}` : ''}`
+    }
+
+    case 'ai_reply': {
+      const cfg = step.step_config as AiReplyConfig
+      if (!args.contactId) throw new Error('ai_reply needs a contact')
+      const conversationId = await resolveConversationId(args)
+      
+      const { data: contact } = await db
+        .from('contacts')
+        .select('name')
+        .eq('id', args.contactId)
+        .single()
+        
+      const { reply } = await executeAiReplyStep(cfg, {
+        contactId: args.contactId,
+        conversationId,
+        inboundMessage: args.context.message_text ?? '',
+        contactName: contact?.name ?? 'Customer',
+        accountId: args.automation.user_id,
+      })
+
+      const { whatsapp_message_id } = await engineSendText({
+        userId: args.automation.user_id,
+        conversationId,
+        contactId: args.contactId,
+        text: reply,
+      })
+      
+      return `ai replied via Meta (${whatsapp_message_id})`
+    }
+
+    case 'ai_classify': {
+      const classifyConfig = step.step_config as ClassifyConfig
+      const { data: contact } = await db
+        .from('contacts')
+        .select('name')
+        .eq('id', args.contactId)
+        .single()
+
+      const result = await executeAiClassifyStep(classifyConfig, {
+        inboundMessage: args.context.message_text ?? '',
+        contactName: contact?.name ?? 'Customer',
+      })
+      
+      // Store result in context vars so 'condition' steps can branch on it
+      args.context.vars = {
+        ...(args.context.vars ?? {}),
+        ai_category: result.category_id,
+        ai_confidence: result.confidence,
+      }
+      return `classified as ${result.category_id} (${result.confidence})`
+    }
+
+    case 'ai_extract': {
+      const extractConfig = step.step_config as ExtractConfig
+      if (!args.contactId) throw new Error('ai_extract needs a contact')
+      
+      const result = await executeAiExtractStep(extractConfig, {
+        inboundMessage: args.context.message_text ?? '',
+        contactId: args.contactId,
+      })
+      
+      return `extracted ${Object.keys(result.extracted).length} fields`
     }
 
     default:

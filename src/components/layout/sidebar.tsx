@@ -18,6 +18,7 @@ import {
   LogOut,
   User,
   X,
+  Building2,
 } from "lucide-react";
 import {
   Avatar,

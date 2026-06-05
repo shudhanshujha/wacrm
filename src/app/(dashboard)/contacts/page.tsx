@@ -45,11 +45,21 @@ import {
 import { ContactForm } from '@/components/contacts/contact-form';
 import { ContactDetailView } from '@/components/contacts/contact-detail-view';
 import { ImportModal } from '@/components/contacts/import-modal';
+import Link from 'next/link';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Company } from '@/types';
 
 const PAGE_SIZE = 25;
 
 interface ContactWithTags extends Contact {
   tags?: Tag[];
+  company_data?: { id: string; name: string } | null;
 }
 
 export default function ContactsPage() {
@@ -61,6 +71,8 @@ export default function ContactsPage() {
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
   const [showOptedOut, setShowOptedOut] = useState(false);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [companyFilter, setCompanyFilter] = useState<string>('all');
 
   // Modals
   const [formOpen, setFormOpen] = useState(false);
@@ -85,6 +97,11 @@ export default function ContactsPage() {
     }
   }, [supabase]);
 
+  const fetchCompanies = useCallback(async () => {
+    const { data } = await supabase.from('companies').select('*').order('name');
+    if (data) setCompanies(data);
+  }, [supabase]);
+
   const fetchContacts = useCallback(async () => {
     setLoading(true);
 
@@ -93,12 +110,16 @@ export default function ContactsPage() {
 
     let query = supabase
       .from('contacts')
-      .select('*', { count: 'exact' })
+      .select('*, company_data:companies(id, name)', { count: 'exact' })
       .order('created_at', { ascending: false })
       .range(from, to);
 
     if (!showOptedOut) {
       query = query.eq('whatsapp_opted_out', false);
+    }
+
+    if (companyFilter !== 'all') {
+      query = query.eq('company_id', companyFilter);
     }
 
     if (search.trim()) {

@@ -3,7 +3,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
-import type { Contact, Tag, ContactNote, CustomField, Deal } from '@/types';
+import Link from 'next/link';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CompanyModal } from '@/components/companies/company-modal';
+import type { Contact, Tag, ContactNote, CustomField, Deal, Company } from '@/types';
 import {
   Sheet,
   SheetContent,
@@ -80,6 +83,12 @@ export function ContactDetailView({
   // Deals tab
   const [deals, setDeals] = useState<Deal[]>([]);
   const [loadingDeals, setLoadingDeals] = useState(false);
+
+  // Company Assignment
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [companySearch, setCompanySearch] = useState('');
+  const [companyModalOpen, setCompanyModalOpen] = useState(false);
+  const [popoverOpen, setPopoverOpen] = useState(false);
 
   const fetchContact = useCallback(async () => {
     if (!contactId) return;
@@ -164,6 +173,11 @@ export function ContactDetailView({
     setLoadingDeals(false);
   }, [contactId, supabase]);
 
+  const fetchCompanies = useCallback(async () => {
+    const { data } = await supabase.from('companies').select('*').order('name');
+    if (data) setCompanies(data);
+  }, [supabase]);
+
   useEffect(() => {
     if (open && contactId) {
       fetchContact();
@@ -171,8 +185,9 @@ export function ContactDetailView({
       fetchNotes();
       fetchCustomFields();
       fetchDeals();
+      fetchCompanies();
     }
-  }, [open, contactId, fetchContact, fetchTags, fetchNotes, fetchCustomFields, fetchDeals]);
+  }, [open, contactId, fetchContact, fetchTags, fetchNotes, fetchCustomFields, fetchDeals, fetchCompanies]);
 
   async function copyPhone() {
     if (!contact) return;
@@ -408,16 +423,88 @@ export function ContactDetailView({
                         {contact.email}
                       </span>
                     )}
-                    {contact.company && (
-                      <span className="flex items-center gap-1">
-                        <Building2 className="size-3" />
-                        {contact.company}
-                      </span>
-                    )}
+
+                    <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+                      <PopoverTrigger className="outline-none">
+                        <div className="flex items-center gap-1 hover:text-primary transition-colors cursor-pointer outline-none">
+                          <Building2 className="size-3" />
+                          {contact.company_data ? (
+                            <span className="text-white font-medium">{contact.company_data.name}</span>
+                          ) : contact.company ? (
+                            <span>{contact.company} <span className="text-[10px] text-slate-500">(legacy)</span></span>
+                          ) : (
+                            <span className="text-slate-500 border-b border-dashed border-slate-500">Assign Company</span>
+                          )}
+                        </div>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-64 p-2 bg-slate-900 border-slate-700" align="start">
+                        <div className="space-y-2">
+                          <Input
+                            placeholder="Search companies..."
+                            value={companySearch}
+                            onChange={(e) => setCompanySearch(e.target.value)}
+                            className="h-8 text-xs bg-slate-950 border-slate-800 text-white"
+                          />
+                          <div className="max-h-48 overflow-y-auto space-y-1">
+                            {companies
+                              .filter((c) => c.name.toLowerCase().includes(companySearch.toLowerCase()))
+                              .map((c) => (
+                                <button
+                                  key={c.id}
+                                  onClick={async () => {
+                                    setPopoverOpen(false);
+                                    const { error } = await supabase
+                                      .from('contacts')
+                                      .update({ company_id: c.id })
+                                      .eq('id', contact.id);
+                                    if (error) {
+                                      toast.error('Failed to assign company');
+                                    } else {
+                                      toast.success('Company assigned');
+                                      fetchContact();
+                                      onUpdated();
+                                    }
+                                  }}
+                                  className="w-full text-left px-2 py-1.5 text-sm text-slate-300 hover:bg-slate-800 hover:text-white rounded-md transition-colors"
+                                >
+                                  {c.name}
+                                </button>
+                              ))}
+                            {companies.filter((c) => c.name.toLowerCase().includes(companySearch.toLowerCase())).length === 0 && (
+                              <p className="text-xs text-slate-500 text-center py-2">No matches found.</p>
+                            )}
+                          </div>
+                          <div className="pt-2 border-t border-slate-800">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="w-full justify-start text-xs text-primary hover:text-primary hover:bg-primary/10"
+                              onClick={() => {
+                                setPopoverOpen(false);
+                                setCompanyModalOpen(true);
+                              }}
+                            >
+                              <Plus className="size-3 mr-2" />
+                              Create new company
+                            </Button>
+                          </div>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 </div>
               </div>
             </SheetHeader>
+
+            <CompanyModal
+              open={companyModalOpen}
+              onOpenChange={setCompanyModalOpen}
+              onSaved={() => {
+                fetchCompanies();
+                // Optionally auto-assign if we had a way to know the new ID, 
+                // but fetching the list is good enough for now.
+              }}
+            />
 
             {/* Tabs */}
             <Tabs defaultValue="details" className="flex-1 flex flex-col min-h-0">
