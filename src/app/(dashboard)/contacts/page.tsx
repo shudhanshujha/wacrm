@@ -127,7 +127,31 @@ export default function ContactsPage() {
       query = query.or(`name.ilike.${term},phone.ilike.${term},email.ilike.${term}`);
     }
 
-    const { data, count, error } = await query;
+    let { data, count, error } = await query;
+
+    if (error) {
+      console.warn('[fetchContacts] Main query failed, attempting schema fallback query:', error);
+      
+      // Fallback query (no companies join, no whatsapp_opted_out check)
+      let fallbackQuery = supabase
+        .from('contacts')
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(from, to);
+
+      if (search.trim()) {
+        const term = `%${search.trim()}%`;
+        fallbackQuery = fallbackQuery.or(`name.ilike.${term},phone.ilike.${term},email.ilike.${term}`);
+      }
+
+      const fallbackResult = await fallbackQuery;
+
+      if (!fallbackResult.error && fallbackResult.data) {
+        data = fallbackResult.data as unknown as ContactWithTags[];
+        count = fallbackResult.count;
+        error = null;
+      }
+    }
 
     if (error) {
       console.error('[fetchContacts] Supabase error:', error);
@@ -146,13 +170,22 @@ export default function ContactsPage() {
 
     // Fetch tags for these contacts
     const contactIds = data.map((c) => c.id);
-    const { data: contactTags } = await supabase
-      .from('contact_tags')
-      .select('contact_id, tag_id')
-      .in('contact_id', contactIds);
+    let contactTagsData: { contact_id: string; tag_id: string }[] = [];
+    
+    try {
+      const { data: contactTags, error: tagsError } = await supabase
+        .from('contact_tags')
+        .select('contact_id, tag_id')
+        .in('contact_id', contactIds);
+      if (!tagsError && contactTags) {
+        contactTagsData = contactTags;
+      }
+    } catch (e) {
+      console.warn('Failed to fetch contact tags:', e);
+    }
 
     const tagsByContact: Record<string, string[]> = {};
-    contactTags?.forEach((ct) => {
+    contactTagsData.forEach((ct) => {
       if (!tagsByContact[ct.contact_id]) tagsByContact[ct.contact_id] = [];
       tagsByContact[ct.contact_id].push(ct.tag_id);
     });
