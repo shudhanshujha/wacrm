@@ -343,3 +343,34 @@ html[data-theme="rose"] {
     @apply font-sans;
   }
 }
+
+/* Broadcast indeterminate progress bar animation */
+.broadcast-indeterminate-bar {
+  width: 33%;
+  transform: translateX(-100%);
+  animation: broadcast-slide 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes broadcast-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(400%);
+  }
+}
+
+/* Pipeline scroll utilities */
+.pipeline-scroll {
+  scroll-behavior: smooth;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pipeline-scroll::-webkit-scrollbar {
+    height: 0;
+    display: none;
+  }
+  .pipeline-scroll {
+    scrollbar-width: none;
+  }
+}

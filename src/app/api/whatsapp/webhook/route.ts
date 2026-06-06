@@ -6,6 +6,7 @@ import { normalizePhone, phonesMatch } from '@/lib/whatsapp/phone-utils'
 import { verifyMetaWebhookSignature } from '@/lib/whatsapp/webhook-signature'
 import { runAutomationsForTrigger } from '@/lib/automations/engine'
 import { dispatchInboundToFlows } from '@/lib/flows/engine'
+import { Contact } from '@/types'
 
 // Lazy-initialized to avoid build-time crash when env vars are missing
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -826,12 +827,8 @@ async function parseMessageContent(
       }
   }
 }
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type ContactRow = any
-
 interface ContactOutcome {
-  contact: ContactRow
+  contact: Contact
   /** True when this call created the row; drives new_contact_created
    *  automation dispatch in processMessage. */
   wasCreated: boolean
@@ -842,11 +839,19 @@ async function findOrCreateContact(
   phone: string,
   name: string
 ): Promise<ContactOutcome | null> {
-  // Look up existing contacts for this user
+  const norm = normalizePhone(phone)
+  const last8 = norm.length >= 8 ? norm.slice(-8) : norm
+  
+  // Construct a pattern that matches the last 8 digits in the same order, e.g. %d1%d2%...%d8%
+  // This matches formatted database entries like "+370 6 394 9836" or "(415) 555-1212"
+  const pattern = '%' + last8.split('').join('%') + '%'
+
+  // Look up existing contacts for this user whose phone matches the pattern
   const { data: contacts, error: contactsError } = await supabaseAdmin()
     .from('contacts')
     .select('*')
     .eq('user_id', userId)
+    .ilike('phone', pattern)
 
   if (contactsError) {
     console.error('Error fetching contacts:', contactsError)
@@ -854,7 +859,7 @@ async function findOrCreateContact(
   }
 
   // Use phonesMatch for flexible matching
-  const existingContact = contacts?.find((c: ContactRow) => phonesMatch(c.phone, phone))
+  const existingContact = contacts?.find((c: Contact) => phonesMatch(c.phone, phone))
 
   if (existingContact) {
     // Update name if it changed

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { decrypt } from '@/lib/whatsapp/encryption'
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
@@ -29,6 +30,10 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (!config) return NextResponse.json({ error: 'WhatsApp config not found' }, { status: 400 })
+
+  // Decrypt the access token — the DB column stores the GCM-encrypted form;
+  // passing it raw to Meta results in a 401 on every request.
+  const accessToken = decrypt(config.access_token)
 
   const catalogId = process.env.META_CATALOG_ID
   if (!catalogId) {
@@ -80,7 +85,7 @@ export async function POST(req: NextRequest) {
   const response = await fetch(url, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${config.access_token}`,
+      Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(payload),

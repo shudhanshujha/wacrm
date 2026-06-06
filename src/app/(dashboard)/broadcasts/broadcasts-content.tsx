@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Broadcast } from '@/types';
@@ -103,22 +103,6 @@ export default function BroadcastsContent() {
           className="broadcast-indeterminate fixed inset-x-0 top-0 z-40 h-0.5 overflow-hidden bg-muted"
         >
           <div className="broadcast-indeterminate-bar h-0.5 bg-primary" />
-          <style jsx>{`
-            .broadcast-indeterminate-bar {
-              width: 33%;
-              transform: translateX(-100%);
-              animation: broadcast-slide 1.6s cubic-bezier(0.4, 0, 0.2, 1)
-                infinite;
-            }
-            @keyframes broadcast-slide {
-              0% {
-                transform: translateX(-100%);
-              }
-              100% {
-                transform: translateX(400%);
-              }
-            }
-          `}</style>
         </div>
       )}
 

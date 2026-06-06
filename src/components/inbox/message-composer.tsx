@@ -49,6 +49,12 @@ export function MessageComposer({
   const [cannedSearch, setCannedSearch] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const selectedItemRef = useRef<HTMLButtonElement>(null);
+
+  // Scroll the highlighted canned item into view when navigating with keyboard
+  useEffect(() => {
+    selectedItemRef.current?.scrollIntoView({ block: 'nearest' });
+  }, [selectedIndex]);
 
   useEffect(() => {
     async function loadCanned() {
@@ -198,6 +204,21 @@ export function MessageComposer({
                 setCannedSearch(e.target.value);
                 setSelectedIndex(0);
               }}
+              onKeyDown={(e) => {
+                if (filteredCanned.length === 0) return;
+                if (e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  setSelectedIndex((prev) => (prev + 1) % filteredCanned.length);
+                } else if (e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  setSelectedIndex((prev) => (prev - 1 + filteredCanned.length) % filteredCanned.length);
+                } else if (e.key === 'Enter' || e.key === 'Tab') {
+                  e.preventDefault();
+                  insertCanned(filteredCanned[selectedIndex].content);
+                } else if (e.key === 'Escape') {
+                  setShowCannedPicker(false);
+                }
+              }}
               className="h-8 bg-muted border-input text-sm focus-visible:ring-primary/50"
               autoFocus
             />
@@ -206,6 +227,7 @@ export function MessageComposer({
             {filteredCanned.map((reply, idx) => (
               <button
                 key={reply.id}
+                ref={selectedIndex === idx ? selectedItemRef : null}
                 className={cn(
                   "w-full px-3 py-2 text-left transition-colors",
                   selectedIndex === idx ? "bg-primary/10" : "hover:bg-accent"

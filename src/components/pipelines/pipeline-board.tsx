@@ -145,21 +145,6 @@ export function PipelineBoard({
           </div>
         ) : null}
       </DragOverlay>
-
-      <style jsx>{`
-        .pipeline-scroll {
-          scroll-behavior: smooth;
-        }
-        @media (hover: hover) and (pointer: fine) {
-          .pipeline-scroll::-webkit-scrollbar {
-            height: 0;
-            display: none;
-          }
-          .pipeline-scroll {
-            scrollbar-width: none;
-          }
-        }
-      `}</style>
     </DndContext>
   );
 }
