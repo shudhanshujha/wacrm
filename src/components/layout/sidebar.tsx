@@ -130,7 +130,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
               <MessageSquare className="h-4 w-4" />
             </div>
             <span className="text-sm font-semibold text-sidebar-foreground">
-              CRM Template for WhatsApp
+              WhatsApp CRM
             </span>
           </Link>
           <button
