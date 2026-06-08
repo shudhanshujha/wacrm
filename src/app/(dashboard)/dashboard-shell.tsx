@@ -25,18 +25,7 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
     }
   }, [user, loading, router]);
 
-  if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          <p className="text-sm text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) return null;
+  if (!user && !loading) return null;
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -50,9 +39,17 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function DashboardShell({ children }: { children: React.ReactNode }) {
+export function DashboardShell({
+  children,
+  initialUser = null,
+  initialProfile = null,
+}: {
+  children: React.ReactNode;
+  initialUser?: any;
+  initialProfile?: any;
+}) {
   return (
-    <AuthProvider>
+    <AuthProvider initialUser={initialUser} initialProfile={initialProfile}>
       <DashboardShellInner>{children}</DashboardShellInner>
     </AuthProvider>
   );
