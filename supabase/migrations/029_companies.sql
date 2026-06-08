@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS companies (
 
 ALTER TABLE companies ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users manage own companies" ON companies;
 CREATE POLICY "Users manage own companies" ON companies
   FOR ALL USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 

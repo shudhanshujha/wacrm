@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS catalog_products (
 
 ALTER TABLE catalog_products ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users manage own catalog" ON catalog_products;
 CREATE POLICY "Users manage own catalog" ON catalog_products
   FOR ALL USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
