@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useTotalUnread } from "@/hooks/use-total-unread";
+import { createClient } from "@/lib/supabase/client";
 import {
   LayoutDashboard,
   MessageSquare,
@@ -23,6 +24,7 @@ import {
   ShoppingCart,
   FileBarChart,
   CalendarClock,
+  Palette,
 } from "lucide-react";
 import {
   Avatar,
@@ -63,6 +65,7 @@ const navItems: NavItem[] = [
 const bottomNavItems = [
   { href: "/settings/shopify", label: "Shopify", icon: ShoppingCart },
   { href: "/settings/reports", label: "Scheduled Reports", icon: CalendarClock },
+  { href: "/settings/branding", label: "Branding", icon: Palette },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
@@ -74,8 +77,24 @@ interface SidebarProps {
 
 export function Sidebar({ open = false, onClose }: SidebarProps) {
   const pathname = usePathname();
-  const { profile, signOut } = useAuth();
+  const { profile, signOut, user } = useAuth();
   const totalUnread = useTotalUnread();
+  
+  const [branding, setBranding] = useState<{ app_name: string; logo_url?: string } | null>(null);
+
+  useEffect(() => {
+    async function loadBranding() {
+      if (!user) return;
+      const supabase = createClient(); // assuming we import it
+      const { data } = await supabase
+        .from('account_branding')
+        .select('app_name, logo_url')
+        .eq('account_id', user.id)
+        .single();
+      if (data) setBranding(data);
+    }
+    loadBranding();
+  }, [user]);
 
   // Close the drawer when route changes — users opened it to navigate,
   // so once they pick a destination the drawer should get out of the way.
@@ -133,12 +152,18 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
             close button is hidden since the sidebar is always-visible. */}
         <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border px-4">
           <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <MessageSquare className="h-4 w-4" />
-            </div>
-            <span className="text-sm font-semibold text-sidebar-foreground">
-              WhatsApp CRM
-            </span>
+            {branding?.logo_url ? (
+              <img src={branding.logo_url} alt={branding.app_name} className="h-8 w-auto" />
+            ) : (
+              <>
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                  <MessageSquare className="h-4 w-4" />
+                </div>
+                <span className="text-sm font-semibold text-sidebar-foreground">
+                  {branding ? branding.app_name : "WhatsApp CRM"}
+                </span>
+              </>
+            )}
           </Link>
           <button
             type="button"

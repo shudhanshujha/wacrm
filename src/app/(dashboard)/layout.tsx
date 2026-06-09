@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { DashboardShell } from "./dashboard-shell";
 import { createClient } from "@/lib/supabase/server";
+import { BrandingProvider } from "@/hooks/use-account-branding";
+import { ActingAsBanner } from "@/components/layout/acting-as-banner";
 
 export const dynamic = "force-dynamic";
 
@@ -38,8 +40,12 @@ export default async function DashboardLayout({
   }
 
   return (
-    <DashboardShell initialUser={user} initialProfile={profile}>
-      {children}
-    </DashboardShell>
+    <>
+      <ActingAsBanner />
+      <DashboardShell initialUser={user} initialProfile={profile}>
+        <BrandingProvider />
+        {children}
+      </DashboardShell>
+    </>
   );
 }

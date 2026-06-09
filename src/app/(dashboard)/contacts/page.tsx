@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { ContactsClient } from './contacts-client';
 import type { Tag, Company, Contact } from '@/types';
+import { getActiveAccountId } from '@/lib/get-active-account-id';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,9 +14,10 @@ interface ContactWithTags extends Contact {
 
 export default async function ContactsPage() {
   const supabase = await createClient();
+  const activeAccountId = await getActiveAccountId();
 
   // 1. Fetch tags
-  const { data: tagsData } = await supabase.from('tags').select('*');
+  const { data: tagsData } = await supabase.from('tags').select('*').eq('user_id', activeAccountId);
   const tagsMap: Record<string, Tag> = {};
   if (tagsData) {
     tagsData.forEach((t) => (tagsMap[t.id] = t));
@@ -25,12 +27,14 @@ export default async function ContactsPage() {
   const { data: companiesData } = await supabase
     .from('companies')
     .select('*')
+    .eq('user_id', activeAccountId)
     .order('name');
 
   // 3. Fetch initial contacts (first page, no filters)
   const { data: contactsData, count, error } = await supabase
     .from('contacts')
     .select('*, company_data:companies(id, name)', { count: 'exact' })
+    .eq('user_id', activeAccountId)
     .eq('whatsapp_opted_out', false)
     .order('created_at', { ascending: false })
     .range(0, PAGE_SIZE - 1);

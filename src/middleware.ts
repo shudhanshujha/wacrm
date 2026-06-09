@@ -25,6 +25,29 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
+  // Agency account switching logic
+  const actingAs = request.nextUrl.searchParams.get('acting_as')
+  if (actingAs && user) {
+    supabaseResponse.cookies.set('acting_as_account_id', actingAs, {
+      httpOnly: false, // allow client-side banner to read it easily
+      sameSite: 'strict',
+      path: '/'
+    })
+    
+    // Clean up URL
+    const url = request.nextUrl.clone()
+    url.searchParams.delete('acting_as')
+    
+    // We redirect to apply the cookie, returning a new response
+    const redirectRes = NextResponse.redirect(url)
+    redirectRes.cookies.set('acting_as_account_id', actingAs, {
+      httpOnly: false,
+      sameSite: 'strict',
+      path: '/'
+    })
+    return redirectRes
+  }
+
   // Auth pages - redirect to dashboard if already logged in
   if (user && (
     request.nextUrl.pathname === '/login' ||
