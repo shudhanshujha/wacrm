@@ -21,6 +21,8 @@ import {
   Building2,
   Store,
   ShoppingCart,
+  FileBarChart,
+  CalendarClock,
 } from "lucide-react";
 import {
   Avatar,
@@ -55,10 +57,12 @@ const navItems: NavItem[] = [
   { href: "/broadcasts", label: "Broadcasts", icon: Radio },
   { href: "/automations", label: "Automations", icon: Zap },
   { href: "/flows", label: "Flows", icon: Workflow },
+  { href: "/analytics/reports", label: "Reports", icon: FileBarChart },
 ];
 
 const bottomNavItems = [
   { href: "/settings/shopify", label: "Shopify", icon: ShoppingCart },
+  { href: "/settings/reports", label: "Scheduled Reports", icon: CalendarClock },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
