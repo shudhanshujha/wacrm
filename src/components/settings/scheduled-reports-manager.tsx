@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/hooks/use-auth'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Loader2, Plus, Trash2, Pencil, CalendarClock } from 'lucide-react'
 import {
   Table,
@@ -37,8 +37,20 @@ export function ScheduledReportsManager() {
   const { user } = useAuth()
   const supabase = createClient()
   
+  interface ScheduledReport {
+    id: string
+    name: string
+    report_type: string
+    frequency: string
+    email: string
+    is_active: boolean
+    last_sent_at?: string | null
+    next_send_at: string
+    created_at: string
+  }
+
   const [loading, setLoading] = useState(true)
-  const [reports, setReports] = useState<any[]>([])
+  const [reports, setReports] = useState<ScheduledReport[]>([])
   
   const [modalOpen, setModalOpen] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -50,7 +62,7 @@ export function ScheduledReportsManager() {
   const [formEmail, setFormEmail] = useState('')
   const [formActive, setFormActive] = useState(true)
 
-  const loadReports = async () => {
+  const loadReports = useCallback(async () => {
     if (!user) return
     setLoading(true)
     const { data } = await supabase
@@ -61,11 +73,14 @@ export function ScheduledReportsManager() {
     
     setReports(data || [])
     setLoading(false)
-  }
+  }, [user, supabase])
 
   useEffect(() => {
-    loadReports()
-  }, [user])
+    const timer = setTimeout(() => {
+      loadReports()
+    }, 0)
+    return () => clearTimeout(timer)
+  }, [loadReports])
 
   const openAddModal = () => {
     setFormId(null)
@@ -77,7 +92,7 @@ export function ScheduledReportsManager() {
     setModalOpen(true)
   }
 
-  const openEditModal = (report: any) => {
+  const openEditModal = (report: ScheduledReport) => {
     setFormId(report.id)
     setFormName(report.name)
     setFormType(report.report_type)
@@ -96,7 +111,7 @@ export function ScheduledReportsManager() {
     setSaving(true)
     
     const now = new Date()
-    let nextSend = new Date(now)
+    const nextSend = new Date(now)
     
     if (formFrequency === 'weekly') {
       nextSend.setDate(now.getDate() + ((1 + 7 - now.getDay()) % 7 || 7))
@@ -228,7 +243,7 @@ export function ScheduledReportsManager() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Report Type</Label>
-                <Select value={formType} onValueChange={setFormType}>
+                <Select value={formType} onValueChange={(val) => setFormType(val ?? 'full')}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="full">Full Report</SelectItem>
@@ -242,7 +257,7 @@ export function ScheduledReportsManager() {
               
               <div className="space-y-2">
                 <Label>Frequency</Label>
-                <Select value={formFrequency} onValueChange={setFormFrequency}>
+                <Select value={formFrequency} onValueChange={(val) => setFormFrequency(val ?? 'weekly')}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="weekly">Weekly (Monday)</SelectItem>

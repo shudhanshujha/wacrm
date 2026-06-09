@@ -31,8 +31,23 @@ export function ShopifySettings() {
   const [loading, setLoading] = useState(true)
   const [connecting, setConnecting] = useState(false)
   const [disconnecting, setDisconnecting] = useState(false)
-  const [connection, setConnection] = useState<any>(null)
-  const [events, setEvents] = useState<any[]>([])
+  interface ShopifyConnection {
+    id: string
+    shop_domain: string
+    created_at: string
+  }
+
+  interface ShopifyEvent {
+    id: string
+    event_type: string
+    shopify_order_id?: string
+    payload: Record<string, unknown>
+    status: string
+    created_at: string
+  }
+
+  const [connection, setConnection] = useState<ShopifyConnection | null>(null)
+  const [events, setEvents] = useState<ShopifyEvent[]>([])
   
   const [shopDomain, setShopDomain] = useState('')
   const [accessToken, setAccessToken] = useState('')
@@ -63,7 +78,7 @@ export function ShopifySettings() {
       setLoading(false)
     }
     load()
-  }, [user])
+  }, [user, supabase])
 
   const handleConnect = async () => {
     if (!shopDomain || !accessToken) {
@@ -89,8 +104,9 @@ export function ShopifySettings() {
       
       toast.success('Successfully connected to Shopify')
       window.location.reload()
-    } catch (error: any) {
-      toast.error(error.message)
+    } catch (error) {
+      const err = error as Error
+      toast.error(err.message || 'Failed to connect')
     } finally {
       setConnecting(false)
     }
@@ -108,7 +124,7 @@ export function ShopifySettings() {
         
       toast.success('Disconnected from Shopify')
       window.location.reload()
-    } catch (error) {
+    } catch {
       toast.error('Failed to disconnect')
     } finally {
       setDisconnecting(false)
@@ -140,7 +156,7 @@ export function ShopifySettings() {
           <CardHeader>
             <CardTitle>Connect Your Shopify Store</CardTitle>
             <CardDescription>
-              You'll need a custom app Admin API access token from your Shopify store.
+              You&apos;ll need a custom app Admin API access token from your Shopify store.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -186,7 +202,7 @@ export function ShopifySettings() {
                     <li>Log in to your Shopify Admin panel.</li>
                     <li>Go to <strong>Settings {'>'} Apps and sales channels</strong>.</li>
                     <li>Click <strong>Develop apps</strong> and then <strong>Create an app</strong>.</li>
-                    <li>Name it "WhatsApp CRM" and create.</li>
+                    <li>Name it &quot;WhatsApp CRM&quot; and create.</li>
                     <li>Go to <strong>Configuration</strong> and edit <strong>Admin API integration</strong>.</li>
                     <li>Grant <strong>read_orders</strong> and <strong>read_customers</strong> permissions.</li>
                     <li>Save, then go to <strong>API Credentials</strong> and click <strong>Install app</strong>.</li>

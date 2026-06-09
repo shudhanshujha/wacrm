@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import type { Contact, Tag, ContactTag, Company } from '@/types';
@@ -82,7 +82,7 @@ export function ContactsClient({
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(initialCount);
   const [showOptedOut, setShowOptedOut] = useState(false);
-  const [companies, setCompanies] = useState<Company[]>(initialCompanies);
+  const [companies] = useState<Company[]>(initialCompanies);
   const [companyFilter, setCompanyFilter] = useState<string>('all');
   const [tagsMap, setTagsMap] = useState<Record<string, Tag>>(initialTags);
 
@@ -106,10 +106,7 @@ export function ContactsClient({
     }
   }, [supabase]);
 
-  const fetchCompanies = useCallback(async () => {
-    const { data } = await supabase.from('companies').select('*').order('name');
-    if (data) setCompanies(data);
-  }, [supabase]);
+
 
   const fetchContacts = useCallback(async () => {
     setLoading(true);
@@ -183,7 +180,7 @@ export function ContactsClient({
       if (!tagsError && contactTags) {
         contactTagsData = contactTags;
       }
-    } catch (e) {}
+    } catch {}
 
     const tagsByContact: Record<string, string[]> = {};
     contactTagsData.forEach((ct) => {
@@ -204,13 +201,16 @@ export function ContactsClient({
 
   // We skip the initial mount fetch because the server already provided it.
   // Subsequent changes to page/search/filter will trigger the effect.
-  const [isInitialMount, setIsInitialMount] = useState(true);
+  const isInitialMount = useRef(true);
   useEffect(() => {
-    if (isInitialMount) {
-      setIsInitialMount(false);
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
       return;
     }
-    fetchContacts();
+    const timer = setTimeout(() => {
+      fetchContacts();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [fetchContacts, page, search, showOptedOut, companyFilter]);
 
   function openAddForm() {

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
 import { DashboardShell } from "./dashboard-shell";
 import { createClient } from "@/lib/supabase/server";
 import { BrandingProvider } from "@/hooks/use-account-branding";

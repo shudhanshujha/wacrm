@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
 
     // 3. Update last_sent_at and next_send_at
     const now = new Date()
-    let nextSend = new Date(now)
+    const nextSend = new Date(now)
     
     if (report.frequency === 'weekly') {
       // Next Monday

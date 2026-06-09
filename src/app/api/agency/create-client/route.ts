@@ -56,6 +56,10 @@ export async function POST(req: Request) {
       email: email
     })
     
+    if (linkError) {
+      console.error('Error generating recovery link:', linkError.message)
+    }
+    
     if (linkData && linkData.properties) {
        console.log('Recovery link for client:', linkData.properties.action_link)
        // TODO: send via Resend API

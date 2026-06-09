@@ -45,6 +45,13 @@ export interface Contact {
   opted_in_at?: string;
   created_at: string;
   updated_at: string;
+  ctwa_source_id?: string | null;
+  ctwa_source_type?: string | null;
+  ctwa_headline?: string | null;
+  ctwa_body?: string | null;
+  ctwa_source_url?: string | null;
+  ctwa_media_type?: string | null;
+  ctwa_first_seen_at?: string | null;
 }
 
 export interface Tag {
@@ -92,7 +99,7 @@ export interface Conversation {
   user_id: string;
   contact_id: string;
   status: ConversationStatus;
-  assigned_agent_id?: string;
+  assigned_agent_id?: string | null;
   bot_paused?: boolean;
   bot_paused_at?: string;
   bot_paused_reason?: string;

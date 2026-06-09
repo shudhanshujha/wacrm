@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AuthProvider, useAuth } from "@/hooks/use-auth";
+import { AuthProvider, useAuth, type Profile } from "@/hooks/use-auth";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
+import type { User } from "@supabase/supabase-js";
 
 // Auth-gated dashboard shell. Extracted from the layout so the layout
 // itself can stay a server component and export metadata (noindex) —
@@ -45,8 +46,8 @@ export function DashboardShell({
   initialProfile = null,
 }: {
   children: React.ReactNode;
-  initialUser?: any;
-  initialProfile?: any;
+  initialUser?: User | null;
+  initialProfile?: Profile | null;
 }) {
   return (
     <AuthProvider initialUser={initialUser} initialProfile={initialProfile}>

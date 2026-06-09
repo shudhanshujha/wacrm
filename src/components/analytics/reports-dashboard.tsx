@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { FileBarChart, Download, FileText, Calendar, Filter } from 'lucide-react'
+import { FileBarChart, Download, FileText, Filter } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   Select,
@@ -16,8 +16,33 @@ import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export function ReportsDashboard() {
+  interface ReportData {
+    broadcasts?: Array<{
+      id: string;
+      name: string | null;
+      created_at: string;
+      status: string | null;
+      sent_count: number | null;
+      delivered_count: number | null;
+      read_count: number | null;
+      replied_count: number | null;
+      failed_count: number | null;
+    }>;
+    inbox?: Array<{
+      id: string;
+      created_at: string;
+      status: string | null;
+      unread_count: number;
+    }>;
+    contacts?: Array<{
+      id: string;
+      created_at: string;
+      whatsapp_opted_out: boolean;
+    }>;
+  }
+
   const [loading, setLoading] = useState(false)
-  const [data, setData] = useState<any>(null)
+  const [data, setData] = useState<ReportData | null>(null)
   
   const [datePreset, setDatePreset] = useState('7d')
   const [fromDate, setFromDate] = useState('')
@@ -55,7 +80,7 @@ export function ReportsDashboard() {
         const res = await fetch(`/api/analytics/report?from=${fromDate}&to=${toDate}T23:59:59.999Z`)
         const json = await res.json()
         setData(json)
-      } catch (err) {
+      } catch {
         toast.error('Failed to load report data')
       } finally {
         setLoading(false)
@@ -87,7 +112,7 @@ export function ReportsDashboard() {
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-2 bg-muted p-1 rounded-md border border-border">
             <Filter className="h-4 w-4 ml-2 text-muted-foreground" />
-            <Select value={datePreset} onValueChange={setDatePreset}>
+            <Select value={datePreset} onValueChange={(val) => setDatePreset(val ?? '7d')}>
               <SelectTrigger className="w-[140px] h-8 bg-transparent border-none focus:ring-0">
                 <SelectValue placeholder="Date Range" />
               </SelectTrigger>

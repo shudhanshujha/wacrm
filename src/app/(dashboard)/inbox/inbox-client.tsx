@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/client";
 import type { Conversation, Message, Contact, ConversationStatus } from "@/types";
-import { useRealtime } from "@/hooks/use-realtime";
+import { useRealtime, type RealtimeEvent } from "@/hooks/use-realtime";
 import { ConversationList } from "@/components/inbox/conversation-list";
 import { MessageThread } from "@/components/inbox/message-thread";
 import { ContactSidebar } from "@/components/inbox/contact-sidebar";
@@ -26,7 +26,7 @@ export function InboxClient({ initialConversations, initialConnected }: InboxCli
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
   const [activeContact, setActiveContact] = useState<Contact | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [whatsappConnected, setWhatsappConnected] = useState<boolean | null>(initialConnected);
+  const [whatsappConnected] = useState<boolean | null>(initialConnected);
   const [resyncToken, setResyncToken] = useState(0);
 
   const autoSelectedForDeepLinkRef = useRef<string | null>(null);
@@ -66,7 +66,7 @@ export function InboxClient({ initialConversations, initialConnected }: InboxCli
     }
   }, []);
 
-  const handleMessageEvent = useCallback((event: any) => {
+  const handleMessageEvent = useCallback((event: RealtimeEvent<Message>) => {
     const newMsg = event.new;
     if (event.eventType === "INSERT") {
       if (activeConversation && newMsg.conversation_id === activeConversation.id) {
@@ -83,7 +83,7 @@ export function InboxClient({ initialConversations, initialConnected }: InboxCli
     }
   }, [activeConversation, hydrateConversation]);
 
-  const handleConversationEvent = useCallback((event: any) => {
+  const handleConversationEvent = useCallback((event: RealtimeEvent<Conversation>) => {
     const conv = event.new;
     if (event.eventType === "INSERT" && !knownConvIdsRef.current.has(conv.id)) {
       setConversations((prev) => [conv, ...prev]);
@@ -187,12 +187,12 @@ export function InboxClient({ initialConversations, initialConnected }: InboxCli
             messages={messages}
             onMessagesLoaded={(m: Message[]) => setMessages(m)}
             onNewMessage={(m: Message) => setMessages(prev => [...prev, m])}
-            onUpdateMessage={(id: string, u: any) => setMessages(prev => prev.map(m => m.id === id ? {...m, ...u} : m))}
-            onStatusChange={(id: string, s: any) => {
+            onUpdateMessage={(id: string, u: Partial<Message>) => setMessages(prev => prev.map(m => m.id === id ? {...m, ...u} : m))}
+            onStatusChange={(id: string, s: ConversationStatus) => {
               setConversations(prev => prev.map(c => c.id === id ? {...c, status: s} : c));
               if (activeConversation?.id === id) setActiveConversation(prev => prev ? {...prev, status: s} : null);
             }}
-            onAssignChange={(id: string, a: any) => {
+            onAssignChange={(id: string, a: string | null) => {
               setConversations(prev => prev.map(c => c.id === id ? {...c, assigned_agent_id: a} : c));
               if (activeConversation?.id === id) setActiveConversation(prev => prev ? {...prev, assigned_agent_id: a} : null);
             }}

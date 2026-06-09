@@ -44,7 +44,7 @@ export function BrandingSettings() {
       setLoading(false)
     }
     load()
-  }, [user])
+  }, [user, supabase])
 
   const handleSave = async () => {
     setSaving(true)
@@ -69,7 +69,7 @@ export function BrandingSettings() {
       
       // Force reload to apply theme changes globally
       setTimeout(() => window.location.reload(), 1000)
-    } catch (error: any) {
+    } catch {
       toast.error('Failed to save branding')
     } finally {
       setSaving(false)

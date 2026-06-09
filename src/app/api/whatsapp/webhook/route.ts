@@ -606,7 +606,7 @@ async function processMessage(
   try {
     const referral = message?.referral
     if (referral?.source_id && contactRecord) {
-      if (!(contactRecord as any).ctwa_source_id) {
+      if (!contactRecord.ctwa_source_id) {
         await supabaseAdmin()
           .from('contacts')
           .update({

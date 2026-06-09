@@ -11,7 +11,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 
-interface Profile {
+export interface Profile {
   id: string;
   full_name: string | null;
   email: string;

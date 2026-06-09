@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/hooks/use-auth'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Loader2, Plus, Users, ArrowRightLeft } from 'lucide-react'
 import {
   Table,
@@ -32,8 +32,16 @@ export function AgencyDashboard({ isInitialAgency }: { isInitialAgency?: boolean
   const supabase = createClient()
   const router = useRouter()
   
+  interface ClientAccount {
+    id: string
+    client_name: string
+    client_id: string
+    created_at: string
+    is_active: boolean
+  }
+
   const [loading, setLoading] = useState(true)
-  const [clients, setClients] = useState<any[]>([])
+  const [clients, setClients] = useState<ClientAccount[]>([])
   const [isAgency, setIsAgency] = useState(isInitialAgency || false)
   
   const [modalOpen, setModalOpen] = useState(false)
@@ -42,7 +50,7 @@ export function AgencyDashboard({ isInitialAgency }: { isInitialAgency?: boolean
   const [formName, setFormName] = useState('')
   const [formEmail, setFormEmail] = useState('')
 
-  const loadClients = async () => {
+  const loadClients = useCallback(async () => {
     if (!user) return
     setLoading(true)
     const { data } = await supabase
@@ -54,11 +62,11 @@ export function AgencyDashboard({ isInitialAgency }: { isInitialAgency?: boolean
     setClients(data || [])
     if (data && data.length > 0) setIsAgency(true)
     setLoading(false)
-  }
+  }, [user, supabase])
 
   useEffect(() => {
     loadClients()
-  }, [user])
+  }, [loadClients])
 
   const handleCreate = async () => {
     if (!formName || !formEmail) {
@@ -83,8 +91,9 @@ export function AgencyDashboard({ isInitialAgency }: { isInitialAgency?: boolean
       setModalOpen(false)
       loadClients()
       setIsAgency(true)
-    } catch (err: any) {
-      toast.error(err.message)
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'An error occurred'
+      toast.error(errorMsg)
     } finally {
       setCreating(false)
     }
@@ -155,7 +164,7 @@ export function AgencyDashboard({ isInitialAgency }: { isInitialAgency?: boolean
             <Users className="h-6 w-6" />
             Client Accounts
           </h1>
-          <p className="text-muted-foreground mt-1">Manage and access your client's CRM dashboards.</p>
+          <p className="text-muted-foreground mt-1">Manage and access your client&apos;s CRM dashboards.</p>
         </div>
         <Button onClick={() => {
           setFormName('')

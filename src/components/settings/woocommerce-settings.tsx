@@ -31,8 +31,22 @@ export function WooCommerceSettings() {
   const [loading, setLoading] = useState(true)
   const [connecting, setConnecting] = useState(false)
   const [disconnecting, setDisconnecting] = useState(false)
-  const [connection, setConnection] = useState<any>(null)
-  const [events, setEvents] = useState<any[]>([])
+  interface WooCommerceConnection {
+    id: string
+    store_url: string
+    created_at: string
+  }
+
+  interface WooCommerceEvent {
+    id: string
+    event_type: string
+    woo_order_id: string
+    status: string
+    created_at: string
+  }
+
+  const [connection, setConnection] = useState<WooCommerceConnection | null>(null)
+  const [events, setEvents] = useState<WooCommerceEvent[]>([])
   
   const [storeUrl, setStoreUrl] = useState('')
   const [consumerKey, setConsumerKey] = useState('')
@@ -65,7 +79,7 @@ export function WooCommerceSettings() {
       setLoading(false)
     }
     load()
-  }, [user])
+  }, [user, supabase])
 
   const handleConnect = async () => {
     if (!storeUrl || !consumerKey || !consumerSecret || !webhookSecret) {
@@ -97,8 +111,9 @@ export function WooCommerceSettings() {
       } else {
         window.location.reload()
       }
-    } catch (error: any) {
-      toast.error(error.message)
+    } catch (error) {
+      const err = error as Error
+      toast.error(err.message || 'Failed to connect')
     } finally {
       setConnecting(false)
     }
@@ -116,7 +131,7 @@ export function WooCommerceSettings() {
         
       toast.success('Disconnected from WooCommerce')
       window.location.reload()
-    } catch (error) {
+    } catch {
       toast.error('Failed to disconnect')
     } finally {
       setDisconnecting(false)
@@ -169,7 +184,7 @@ export function WooCommerceSettings() {
             <CardHeader>
               <CardTitle>Connect Your WooCommerce Store</CardTitle>
               <CardDescription>
-                You'll need to generate REST API keys in your WordPress dashboard.
+                You&apos;ll need to generate REST API keys in your WordPress dashboard.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -239,7 +254,7 @@ export function WooCommerceSettings() {
                       <li>Go to <strong>WooCommerce {'>'} Settings</strong>.</li>
                       <li>Click the <strong>Advanced</strong> tab, then <strong>REST API</strong>.</li>
                       <li>Click <strong>Add key</strong>.</li>
-                      <li>Description: "WhatsApp CRM". Permissions: <strong>Read/Write</strong>.</li>
+                      <li>Description: &quot;WhatsApp CRM&quot;. Permissions: <strong>Read/Write</strong>.</li>
                       <li>Click Generate API key.</li>
                       <li>Copy the <strong>Consumer Key</strong> and <strong>Consumer Secret</strong>.</li>
                     </ol>

@@ -10,7 +10,12 @@ export function ActingAsBanner() {
   useEffect(() => {
     // Read the cookie client-side
     const match = document.cookie.match(new RegExp('(^| )acting_as_account_id=([^;]+)'))
-    if (match) setActingAs(match[2])
+    if (match) {
+      const value = match[2]
+      setTimeout(() => {
+        setActingAs(value)
+      }, 0)
+    }
   }, [])
 
   const exitImpersonation = () => {

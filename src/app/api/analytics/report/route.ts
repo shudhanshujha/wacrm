@@ -19,7 +19,32 @@ export async function GET(req: NextRequest) {
   if (to) timeFilter += `created_at.lte.${to}`
   if (timeFilter.endsWith(',')) timeFilter = timeFilter.slice(0, -1)
 
-  const reportData: any = {}
+  interface ReportData {
+    broadcasts?: Array<{
+      id: string;
+      name: string | null;
+      created_at: string;
+      status: string | null;
+      sent_count: number | null;
+      delivered_count: number | null;
+      read_count: number | null;
+      replied_count: number | null;
+      failed_count: number | null;
+    }>;
+    inbox?: Array<{
+      id: string;
+      created_at: string;
+      status: string | null;
+      unread_count: number;
+    }>;
+    contacts?: Array<{
+      id: string;
+      created_at: string;
+      whatsapp_opted_out: boolean;
+    }>;
+  }
+
+  const reportData: ReportData = {}
 
   if (type === 'broadcasts' || type === 'full') {
     let query = supabase.from('broadcasts').select('id, name, created_at, status, sent_count, delivered_count, read_count, replied_count, failed_count').eq('user_id', user.id)
@@ -53,14 +78,14 @@ export async function GET(req: NextRequest) {
     let csv = ''
     if (type === 'broadcasts' || type === 'full') {
       csv += 'Broadcasts\nName,Date,Sent,Delivered,Read,Replied,Failed\n'
-      reportData.broadcasts?.forEach((b: any) => {
+      reportData.broadcasts?.forEach((b) => {
         csv += `"${b.name}",${b.created_at},${b.sent_count},${b.delivered_count},${b.read_count},${b.replied_count},${b.failed_count}\n`
       })
       csv += '\n'
     }
     if (type === 'contacts' || type === 'full') {
       csv += 'Contacts\nID,Date,OptedOut\n'
-      reportData.contacts?.forEach((c: any) => {
+      reportData.contacts?.forEach((c) => {
         csv += `${c.id},${c.created_at},${c.whatsapp_opted_out}\n`
       })
       csv += '\n'

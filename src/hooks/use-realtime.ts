@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { Message, Conversation } from "@/types";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
-interface RealtimeEvent<T> {
+export interface RealtimeEvent<T> {
   eventType: "INSERT" | "UPDATE" | "DELETE";
   new: T;
   old: Partial<T>;
