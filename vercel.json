@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/integrations/shopify/process-abandoned-carts",
+      "schedule": "0 0 * * *"
+    }
+  ]
+}

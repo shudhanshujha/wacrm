@@ -34,6 +34,14 @@ interface WhatsAppMessage {
   sticker?: { id: string; mime_type: string }
   location?: { latitude: number; longitude: number; name?: string; address?: string }
   reaction?: { message_id: string; emoji: string }
+  referral?: {
+    source_id: string
+    source_type: string
+    headline?: string
+    body?: string
+    source_url?: string
+    media_type?: string
+  }
   /**
    * Set when the customer taps a button or list row on an interactive
    * message we sent. `button_reply.id` / `list_reply.id` is whatever id
@@ -592,6 +600,42 @@ async function processMessage(
       .from('contacts')
       .update({ whatsapp_opted_out: false, opted_in_at: new Date().toISOString() })
       .eq('id', contactRecord.id)
+  }
+
+  // ── Click-to-WhatsApp attribution ────────────────────────────────────────
+  try {
+    const referral = message?.referral
+    if (referral?.source_id && contactRecord) {
+      if (!(contactRecord as any).ctwa_source_id) {
+        await supabaseAdmin()
+          .from('contacts')
+          .update({
+            ctwa_source_id:    referral.source_id,
+            ctwa_source_type:  referral.source_type ?? 'ad',
+            ctwa_headline:     referral.headline ?? null,
+            ctwa_body:         referral.body ?? null,
+            ctwa_source_url:   referral.source_url ?? null,
+            ctwa_media_type:   referral.media_type ?? null,
+            ctwa_first_seen_at: new Date().toISOString(),
+          })
+          .eq('id', contactRecord.id)
+      }
+      
+      await supabaseAdmin()
+        .from('ctwa_events')
+        .insert({
+          account_id:      userId,
+          contact_id:      contactRecord.id,
+          conversation_id: conversation.id,
+          ad_id:           referral.source_id,
+          ad_source_type:  referral.source_type ?? 'ad',
+          headline:        referral.headline ?? null,
+          source_url:      referral.source_url ?? null,
+          media_type:      referral.media_type ?? null,
+        })
+    }
+  } catch (err) {
+    console.error('[webhook] ctwa attribution failed:', err)
   }
 
   // ── Bot paused check ────────────────────────────────────────────────

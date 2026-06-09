@@ -19,6 +19,8 @@ import {
   User,
   X,
   Building2,
+  Store,
+  ShoppingCart,
 } from "lucide-react";
 import {
   Avatar,
@@ -56,6 +58,7 @@ const navItems: NavItem[] = [
 ];
 
 const bottomNavItems = [
+  { href: "/settings/shopify", label: "Shopify", icon: ShoppingCart },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
