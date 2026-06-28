@@ -73,7 +73,7 @@ export function InboxClient({ initialConversations, initialConnected }: InboxCli
         setMessages((prev) => prev.some(m => m.id === newMsg.id) ? prev : [...prev.filter(m => !m.id.startsWith("temp-")), newMsg]);
       }
       if (knownConvIdsRef.current.has(newMsg.conversation_id)) {
-        setConversations((prev) => prev.map((c) => c.id === newMsg.conversation_id ? { ...c, last_message_text: newMsg.content_text ?? "", last_message_at: newMsg.created_at, unread_count: activeConversation?.id === newMsg.conversation_id ? 0 : c.unread_count + 1 } : c));
+        setConversations((prev) => prev.map((c) => c.id === newMsg.conversation_id ? { ...c, last_message_text: newMsg.content_text ?? "", last_message_at: newMsg.created_at } : c));
       } else {
         hydrateConversation(newMsg.conversation_id);
       }
@@ -91,8 +91,7 @@ export function InboxClient({ initialConversations, initialConnected }: InboxCli
     }
     if (event.eventType === "UPDATE") {
       if (knownConvIdsRef.current.has(conv.id)) {
-        const isActive = activeConversation?.id === conv.id;
-        setConversations((prev) => prev.map((c) => c.id === conv.id ? { ...c, ...conv, unread_count: isActive ? 0 : conv.unread_count } : c));
+        setConversations((prev) => prev.map((c) => c.id === conv.id ? { ...c, ...conv } : c));
       } else {
         hydrateConversation(conv.id);
       }

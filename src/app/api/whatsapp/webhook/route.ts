@@ -532,6 +532,21 @@ async function processMessage(
       ? 'image'   // stickers are images
       : 'text'    // reaction, unknown → text fallback
 
+  // Dedup check — Meta may send the same webhook twice. The DB has a
+  // partial unique index on messages(message_id) for production safety,
+  // but we check here first to avoid a noisy error log.
+  if (message.id) {
+    const { data: existing } = await supabaseAdmin()
+      .from('messages')
+      .select('id')
+      .eq('message_id', message.id)
+      .maybeSingle()
+    if (existing) {
+      console.warn('[webhook] duplicate message_id, skipping:', message.id)
+      return
+    }
+  }
+
   // Determine whether this is the contact's very first inbound message
   // BEFORE we insert, so the count is accurate. Covers the case where
   // the contact row already exists (manual add / CSV import) but they've
@@ -564,19 +579,28 @@ async function processMessage(
     return
   }
 
-  // Update conversation
+  // Update conversation — atomic unread_count increment avoids the
+  // race condition of read-modify-write when concurrent webhooks arrive.
   const { error: convError } = await supabaseAdmin()
     .from('conversations')
     .update({
       last_message_text: contentText || `[${message.type}]`,
       last_message_at: new Date().toISOString(),
-      unread_count: (conversation.unread_count || 0) + 1,
       updated_at: new Date().toISOString(),
     })
     .eq('id', conversation.id)
 
   if (convError) {
     console.error('Error updating conversation:', convError)
+  }
+
+  // Increment unread_count atomically (separate from the UPDATE above
+  // so the count is never overwritten by a concurrent webhook).
+  const { error: unreadError } = await supabaseAdmin().rpc('increment_unread', {
+    conv_id: conversation.id,
+  })
+  if (unreadError) {
+    console.error('Error incrementing unread_count:', unreadError)
   }
 
   // If this contact was a recent broadcast recipient, flag the reply
@@ -936,7 +960,22 @@ async function findOrCreateContact(
 }
 
 async function findOrCreateConversation(userId: string, contactId: string) {
-  // Look for existing conversation
+  // Try to insert without conflict — safe against concurrent webhooks
+  // thanks to the unique index on (user_id, contact_id) added in
+  // migration 036. If the row already exists, DO NOTHING and the
+  // RETURNING clause returns nothing (data is null).
+  const { data } = await supabaseAdmin()
+    .from('conversations')
+    .upsert(
+      { user_id: userId, contact_id: contactId },
+      { onConflict: 'user_id,contact_id', ignoreDuplicates: true }
+    )
+    .select()
+    .single()
+
+  if (data) return data
+
+  // Row already existed — fetch it.
   const { data: existing, error: findError } = await supabaseAdmin()
     .from('conversations')
     .select('*')
@@ -944,24 +983,10 @@ async function findOrCreateConversation(userId: string, contactId: string) {
     .eq('contact_id', contactId)
     .single()
 
-  if (!findError && existing) {
-    return existing
-  }
-
-  // Create new conversation
-  const { data: newConv, error: createError } = await supabaseAdmin()
-    .from('conversations')
-    .insert({
-      user_id: userId,
-      contact_id: contactId,
-    })
-    .select()
-    .single()
-
-  if (createError) {
-    console.error('Error creating conversation:', createError)
+  if (findError) {
+    console.error('Error finding conversation after upsert:', findError)
     return null
   }
 
-  return newConv
+  return existing
 }
