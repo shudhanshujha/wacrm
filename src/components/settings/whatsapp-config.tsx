@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import {
   Eye,
@@ -13,6 +14,10 @@ import {
   Zap,
   AlertTriangle,
   RotateCcw,
+  MessageCircle,
+  Smartphone,
+  Check,
+  ArrowRight,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
@@ -29,14 +34,26 @@ import {
 } from '@/components/ui/accordion';
 import type { WhatsAppConfig as WhatsAppConfigType } from '@/types';
 
+interface PendingPhoneOption {
+  id: string;
+  user_id: string;
+  phone_number_id: string;
+  waba_id: string | null;
+  display_phone_number: string;
+  verified_name: string | null;
+  quality_rating: string | null;
+}
+
 const MASKED_TOKEN = '••••••••••••••••';
 
 type ConnectionStatus = 'connected' | 'disconnected' | 'unknown';
-type ResetReason = 'token_corrupted' | 'meta_api_error' | null;
+type ResetReason = 'token_corrupted' | 'meta_api_error' | 'oauth_failed' | null;
 
 export function WhatsAppConfig() {
   const supabase = createClient();
   const { user, loading: authLoading } = useAuth();
+  const searchParams = useSearchParams();
+  const oauthParam = searchParams.get('oauth');
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -54,15 +71,44 @@ export function WhatsAppConfig() {
   const [verifyToken, setVerifyToken] = useState('');
   const [tokenEdited, setTokenEdited] = useState(false);
 
+  // OAuth phone picker state
+  const [pendingPhones, setPendingPhones] = useState<PendingPhoneOption[]>([]);
+  const [pendingWabaName, setPendingWabaName] = useState<string | null>(null);
+  const [showPhonePicker, setShowPhonePicker] = useState(false);
+  const [selectedPhoneId, setSelectedPhoneId] = useState<string | null>(null);
+  const [completingOAuth, setCompletingOAuth] = useState(false);
+
   const webhookUrl =
     typeof window !== 'undefined'
       ? `${window.location.origin}/api/whatsapp/webhook`
       : '';
 
+  // Handle OAuth callback states
+  useEffect(() => {
+    if (!oauthParam) return;
+
+    if (oauthParam === 'success') {
+      const phone = searchParams.get('phone');
+      const name = searchParams.get('name');
+      toast.success(
+        name
+          ? `Connected to ${decodeURIComponent(name)} (${decodeURIComponent(phone ?? '')})`
+          : 'WhatsApp connected successfully!'
+      );
+    } else if (oauthParam === 'denied') {
+      toast.error('You denied the connection request. No changes were made.');
+    } else if (oauthParam === 'pick') {
+      setShowPhonePicker(true);
+      toast.info('Select which phone number to connect');
+    } else if (oauthParam === 'error') {
+      const reason = searchParams.get('reason');
+      toast.error(reason ? `Connection failed: ${decodeURIComponent(reason)}` : 'Connection failed');
+    }
+  }, [oauthParam, searchParams]);
+
   const fetchConfig = useCallback(async (userId: string) => {
     setLoading(true);
     try {
-      // Load form values from Supabase (shows what's in DB)
       const { data, error } = await supabase
         .from('whatsapp_config')
         .select('*')
@@ -81,7 +127,13 @@ export function WhatsAppConfig() {
         setVerifyToken('');
         setTokenEdited(false);
 
-        // Then verify health via the API (decrypts token + pings Meta)
+        // If status is pending_oauth, show the phone picker
+        if (data.status === 'pending_oauth') {
+          setShowPhonePicker(true);
+          fetchPendingPhones();
+          return;
+        }
+
         try {
           const res = await fetch('/api/whatsapp/config', { method: 'GET' });
           const payload = await res.json();
@@ -116,7 +168,6 @@ export function WhatsAppConfig() {
         setResetReason(null);
         setStatusMessage('');
 
-        // Check for default token in environment
         try {
           const res = await fetch('/api/whatsapp/config', { method: 'GET' });
           const payload = await res.json();
@@ -145,6 +196,19 @@ export function WhatsAppConfig() {
     }
   }, [supabase]);
 
+  const fetchPendingPhones = async () => {
+    try {
+      const res = await fetch('/api/whatsapp/auth/pending');
+      const data = await res.json();
+      if (data.pending && data.phones?.length > 0) {
+        setPendingPhones(data.phones);
+        setPendingWabaName(data.wabaName);
+      }
+    } catch (err) {
+      console.error('Failed to fetch pending phones:', err);
+    }
+  };
+
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
@@ -153,6 +217,44 @@ export function WhatsAppConfig() {
     }
     fetchConfig(user.id);
   }, [authLoading, user, fetchConfig]);
+
+  const handleOAuthConnect = () => {
+    window.location.href = '/api/whatsapp/auth';
+  };
+
+  const handleCompleteOAuth = async () => {
+    if (!selectedPhoneId) {
+      toast.error('Please select a phone number');
+      return;
+    }
+
+    try {
+      setCompletingOAuth(true);
+      const res = await fetch('/api/whatsapp/auth/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone_number_id: selectedPhoneId }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.error(data.error || 'Failed to complete setup');
+        return;
+      }
+
+      toast.success(data.name ? `Connected to ${data.name} (${data.phone})` : 'WhatsApp connected successfully!');
+      setShowPhonePicker(false);
+      setPendingPhones([]);
+      setSelectedPhoneId(null);
+      if (user) await fetchConfig(user.id);
+    } catch (err) {
+      console.error('OAuth complete error:', err);
+      toast.error('Failed to complete setup');
+    } finally {
+      setCompletingOAuth(false);
+    }
+  };
 
   async function handleSave() {
     if (!phoneNumberId.trim()) {
@@ -167,10 +269,6 @@ export function WhatsAppConfig() {
     try {
       setSaving(true);
 
-      // Always POST through the API — it verifies with Meta and encrypts
-      // the access_token server-side with ENCRYPTION_KEY. Skipping this
-      // and writing direct to Supabase stores the token in plaintext,
-      // which then fails decryption on every subsequent health check.
       const payload: Record<string, unknown> = {
         phone_number_id: phoneNumberId.trim(),
         waba_id: wabaId.trim() || null,
@@ -180,10 +278,6 @@ export function WhatsAppConfig() {
       if (tokenEdited && accessToken !== MASKED_TOKEN && accessToken.trim()) {
         payload.access_token = accessToken.trim();
       } else if (config) {
-        // Existing config — reuse stored encrypted token by decrypting on the
-        // server. But our POST handler requires an access_token to verify
-        // with Meta. If the user didn't change the token, we need to signal
-        // that. Simplest: require token re-entry if they're updating.
         toast.error('Please re-enter the Access Token to save changes');
         setSaving(false);
         return;
@@ -294,7 +388,94 @@ export function WhatsAppConfig() {
     );
   }
 
-  const showResetBanner = resetReason === 'token_corrupted';
+  const showResetBanner = resetReason === 'token_corrupted' || resetReason === 'oauth_failed';
+
+  // OAuth phone picker screen
+  if (showPhonePicker) {
+    return (
+      <div className="mx-auto mt-8 max-w-lg">
+        <Card className="bg-slate-900 border-slate-700">
+          <CardHeader className="text-center">
+            <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+              <Smartphone className="size-7 text-primary" />
+            </div>
+            <CardTitle className="text-white text-xl">Select Phone Number</CardTitle>
+            <CardDescription className="text-slate-400">
+              {pendingWabaName
+                ? `Choose which phone number to connect from ${pendingWabaName}`
+                : 'Choose which phone number to connect'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {pendingPhones.length === 0 ? (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="size-5 animate-spin text-primary" />
+              </div>
+            ) : (
+              pendingPhones.map((phone) => (
+                <button
+                  key={phone.phone_number_id}
+                  onClick={() => setSelectedPhoneId(phone.phone_number_id)}
+                  className={`flex w-full items-center gap-4 rounded-lg border p-4 text-left transition-colors ${
+                    selectedPhoneId === phone.phone_number_id
+                      ? 'border-primary bg-primary/5'
+                      : 'border-slate-700 bg-slate-800/50 hover:bg-slate-800'
+                  }`}
+                >
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-full ${
+                    selectedPhoneId === phone.phone_number_id
+                      ? 'bg-primary text-white'
+                      : 'bg-slate-700 text-slate-300'
+                  }`}>
+                    {selectedPhoneId === phone.phone_number_id ? (
+                      <Check className="size-5" />
+                    ) : (
+                      <Smartphone className="size-5" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-white truncate">
+                      {phone.display_phone_number}
+                    </p>
+                    <p className="text-xs text-slate-400 truncate">
+                      {phone.verified_name ?? 'Unverified'}
+                    </p>
+                  </div>
+                  {phone.quality_rating && (
+                    <span className={`shrink-0 text-[10px] font-medium uppercase ${
+                      phone.quality_rating === 'green' ? 'text-green-400' :
+                      phone.quality_rating === 'yellow' ? 'text-amber-400' :
+                      'text-red-400'
+                    }`}>
+                      {phone.quality_rating}
+                    </span>
+                  )}
+                </button>
+              ))
+            )}
+
+            <Button
+              className="mt-2 w-full"
+              onClick={handleCompleteOAuth}
+              disabled={!selectedPhoneId || completingOAuth}
+            >
+              {completingOAuth ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Connecting...
+                </>
+              ) : (
+                <>
+                  <ArrowRight className="size-4" />
+                  Connect Selected Number
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_380px] mt-4">
@@ -307,7 +488,7 @@ export function WhatsAppConfig() {
               <AlertTriangle className="size-5 text-amber-400 mt-0.5 shrink-0" />
               <div className="flex-1">
                 <AlertTitle className="text-amber-200 mb-1">
-                  Stored token can&apos;t be decrypted
+                  {resetReason === 'token_corrupted' ? "Stored token can't be decrypted" : 'OAuth setup failed'}
                 </AlertTitle>
                 <AlertDescription className="text-amber-100/80 text-sm">
                   {statusMessage}
@@ -351,16 +532,49 @@ export function WhatsAppConfig() {
             {connectionStatus === 'connected'
               ? 'Your WhatsApp Business API is connected and ready to send/receive messages.'
               : statusMessage ||
-                'Configure your Meta API credentials below to connect your WhatsApp Business account.'}
+                'Connect your WhatsApp Business account to get started.'}
           </AlertDescription>
         </Alert>
+
+        {/* OAuth Connect Button */}
+        <Card className="bg-slate-900 border-slate-700 ring-0 ring-transparent">
+          <CardHeader>
+            <CardTitle className="text-white">Quick Connect</CardTitle>
+            <CardDescription className="text-slate-400">
+              Connect your WhatsApp Business account with one click — no manual token setup needed.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              onClick={handleOAuthConnect}
+              size="lg"
+              className="w-full gap-3 bg-[#1877F2] hover:bg-[#166FE5] text-white"
+            >
+              <MessageCircle className="size-5" />
+              Connect with Meta
+            </Button>
+            <p className="mt-2 text-xs text-slate-500 text-center">
+              You&apos;ll be redirected to Meta to authorize access to your WhatsApp Business Account.
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Divider */}
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t border-slate-700" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-[#0f1729] px-2 text-slate-500">Or connect manually</span>
+          </div>
+        </div>
 
         {/* API Credentials */}
         <Card className="bg-slate-900 border-slate-700 ring-0 ring-transparent">
           <CardHeader>
             <CardTitle className="text-white">API Credentials</CardTitle>
             <CardDescription className="text-slate-400">
-              Enter your Meta WhatsApp Business API credentials.
+              Enter your Meta WhatsApp Business API credentials manually.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -428,6 +642,7 @@ export function WhatsAppConfig() {
               />
               <p className="text-xs text-slate-500">
                 A custom string you create. Must match the token you set in Meta webhook settings.
+                Not needed if using Quick Connect.
               </p>
             </div>
           </CardContent>
@@ -526,81 +741,53 @@ export function WhatsAppConfig() {
           <CardHeader>
             <CardTitle className="text-white text-base">Setup Instructions</CardTitle>
             <CardDescription className="text-slate-400">
-              Follow these steps to connect your WhatsApp Business API.
+              Two ways to connect — Quick Connect (recommended) or manual setup.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+              <h4 className="flex items-center gap-2 text-sm font-medium text-primary mb-2">
+                <MessageCircle className="size-4" />
+                Quick Connect (Recommended)
+              </h4>
+              <ol className="list-decimal list-inside space-y-1 text-sm text-slate-300">
+                <li>Click <strong className="text-white">Connect with Meta</strong></li>
+                <li>Log in to your Facebook account</li>
+                <li>Select your WhatsApp Business Account</li>
+                <li>Pick the phone number to connect</li>
+                <li>Done — webhook is configured automatically</li>
+              </ol>
+            </div>
+
             <Accordion>
               <AccordionItem className="border-slate-700">
-                <AccordionTrigger className="text-slate-300 hover:text-white hover:no-underline">
+                <AccordionTrigger className="text-slate-300 hover:text-white hover:no-underline text-sm">
                   <span className="flex items-center gap-2">
-                    <span className="flex size-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">1</span>
-                    Create a Meta App
+                    Manual setup steps
                   </span>
                 </AccordionTrigger>
-                <AccordionContent className="text-slate-400">
-                  <ol className="list-decimal list-inside space-y-1 text-sm">
-                    <li>Go to <span className="text-primary">developers.facebook.com</span></li>
-                    <li>Click &quot;My Apps&quot; and then &quot;Create App&quot;</li>
-                    <li>Select &quot;Business&quot; as the app type</li>
-                    <li>Fill in app details and create</li>
-                  </ol>
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem className="border-slate-700">
-                <AccordionTrigger className="text-slate-300 hover:text-white hover:no-underline">
-                  <span className="flex items-center gap-2">
-                    <span className="flex size-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">2</span>
-                    Add WhatsApp Product
-                  </span>
-                </AccordionTrigger>
-                <AccordionContent className="text-slate-400">
-                  <ol className="list-decimal list-inside space-y-1 text-sm">
-                    <li>In your app dashboard, click &quot;Add Product&quot;</li>
-                    <li>Find &quot;WhatsApp&quot; and click &quot;Set Up&quot;</li>
-                    <li>Follow the setup wizard to link your business</li>
-                  </ol>
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem className="border-slate-700">
-                <AccordionTrigger className="text-slate-300 hover:text-white hover:no-underline">
-                  <span className="flex items-center gap-2">
-                    <span className="flex size-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">3</span>
-                    Get API Credentials
-                  </span>
-                </AccordionTrigger>
-                <AccordionContent className="text-slate-400">
-                  <ol className="list-decimal list-inside space-y-1 text-sm">
-                    <li>Go to WhatsApp &gt; API Setup</li>
-                    <li>Copy your <strong className="text-slate-200">Phone Number ID</strong></li>
-                    <li>Copy your <strong className="text-slate-200">WhatsApp Business Account ID</strong></li>
-                    <li>Generate a <strong className="text-slate-200">Permanent Access Token</strong> from Business Settings &gt; System Users</li>
-                  </ol>
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem className="border-slate-700">
-                <AccordionTrigger className="text-slate-300 hover:text-white hover:no-underline">
-                  <span className="flex items-center gap-2">
-                    <span className="flex size-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">4</span>
-                    Configure Webhooks
-                  </span>
-                </AccordionTrigger>
-                <AccordionContent className="text-slate-400">
-                  <ol className="list-decimal list-inside space-y-1 text-sm">
-                    <li>Go to WhatsApp &gt; Configuration</li>
-                    <li>Click &quot;Edit&quot; on the Webhook section</li>
-                    <li>Paste the <strong className="text-slate-200">Webhook Callback URL</strong> from above</li>
-                    <li>Enter the same <strong className="text-slate-200">Verify Token</strong> you set here</li>
-                    <li>Subscribe to &quot;messages&quot; webhook field</li>
-                  </ol>
+                <AccordionContent className="space-y-3 pt-2">
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-slate-300">1. Create a Meta App</p>
+                    <p className="text-xs text-slate-400">Go to developers.facebook.com → My Apps → Create App → Business</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-slate-300">2. Add WhatsApp product</p>
+                    <p className="text-xs text-slate-400">In your app dashboard, add the WhatsApp product and link your business</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-slate-300">3. Get credentials</p>
+                    <p className="text-xs text-slate-400">From WhatsApp &gt; API Setup, copy Phone Number ID, WABA ID, and generate a Permanent Access Token from Business Settings &gt; System Users</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-slate-300">4. Configure webhook</p>
+                    <p className="text-xs text-slate-400">Paste the Webhook Callback URL and Verify Token in WhatsApp &gt; Configuration. Subscribe to &quot;messages&quot; field.</p>
+                  </div>
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
 
-            <div className="mt-4 pt-4 border-t border-slate-700">
+            <div className="pt-4 border-t border-slate-700">
               <a
                 href="https://developers.facebook.com/docs/whatsapp/cloud-api/get-started"
                 target="_blank"

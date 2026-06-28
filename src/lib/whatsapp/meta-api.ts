@@ -506,6 +506,136 @@ function validateInteractiveHeaderFooter(
 }
 
 // ============================================================
+// OAuth helpers — WhatsApp Cloud API onboarding
+// ============================================================
+
+export interface WABAInfo {
+  id: string
+  name: string
+  currency: string
+  timezone_id: string
+}
+
+export interface WAPhoneNumber {
+  id: string
+  display_phone_number: string
+  verified_name: string
+  quality_rating: string
+}
+
+/**
+ * Exchange an OAuth authorization code for a long-lived user access token.
+ * Uses the Meta Graph API's OAuth token endpoint.
+ */
+export async function exchangeOAuthCode(
+  code: string,
+  redirectUri: string
+): Promise<{ accessToken: string; expiresIn: number }> {
+  const url = `${META_API_BASE}/oauth/access_token`
+  const params = new URLSearchParams({
+    client_id: process.env.META_APP_ID!,
+    client_secret: process.env.META_APP_SECRET!,
+    code,
+    redirect_uri: redirectUri,
+  })
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: params,
+  })
+  if (!response.ok) {
+    await throwMetaError(response, 'OAuth code exchange failed')
+  }
+  const data = await response.json()
+  return { accessToken: data.access_token, expiresIn: data.expires_in }
+}
+
+/**
+ * Exchange a short-lived user access token for a long-lived one (60 days).
+ */
+export async function extendAccessToken(
+  shortLivedToken: string
+): Promise<{ accessToken: string; expiresIn: number }> {
+  const url = `${META_API_BASE}/oauth/access_token`
+  const params = new URLSearchParams({
+    grant_type: 'fb_exchange_token',
+    client_id: process.env.META_APP_ID!,
+    client_secret: process.env.META_APP_SECRET!,
+    fb_exchange_token: shortLivedToken,
+  })
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: params,
+  })
+  if (!response.ok) {
+    await throwMetaError(response, 'Token extension failed')
+  }
+  const data = await response.json()
+  return { accessToken: data.access_token, expiresIn: data.expires_in }
+}
+
+/**
+ * Fetch all WhatsApp Business Accounts the user has access to via their
+ * Business Manager. Requires a token with `whatsapp_business_management`
+ * permission.
+ */
+export async function listWhatsAppBusinessAccounts(
+  accessToken: string
+): Promise<WABAInfo[]> {
+  // First get the user's businesses
+  const meUrl = `${META_API_BASE}/me?fields=id,businesses{id,name}`
+  const meRes = await fetch(meUrl, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  })
+  if (!meRes.ok) {
+    await throwMetaError(meRes, 'Failed to fetch user businesses')
+  }
+  const meData = await meRes.json()
+  const businesses: Array<{ id: string; name: string }> =
+    meData?.businesses?.data ?? []
+
+  // For each business, fetch WABAs
+  const allWABAs: WABAInfo[] = []
+  for (const biz of businesses) {
+    const wabaUrl = `${META_API_BASE}/${biz.id}/client_whatsapp_business_accounts?fields=id,name,currency,timezone_id`
+    const wabaRes = await fetch(wabaUrl, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+    if (!wabaRes.ok) continue
+    const wabaData = await wabaRes.json()
+    for (const w of wabaData?.data ?? []) {
+      allWABAs.push({
+        id: w.id,
+        name: w.name,
+        currency: w.currency,
+        timezone_id: w.timezone_id,
+      })
+    }
+  }
+  return allWABAs
+}
+
+/**
+ * Fetch all phone numbers registered in a WhatsApp Business Account.
+ * Requires a token with `whatsapp_business_messaging` permission.
+ */
+export async function listPhoneNumbers(
+  wabaId: string,
+  accessToken: string
+): Promise<WAPhoneNumber[]> {
+  const url = `${META_API_BASE}/${wabaId}/phone_numbers?fields=id,display_phone_number,verified_name,quality_rating`
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  })
+  if (!response.ok) {
+    await throwMetaError(response, 'Failed to fetch phone numbers')
+  }
+  const data = await response.json()
+  return (data?.data ?? []) as WAPhoneNumber[]
+}
+
+// ============================================================
 // Media
 // ============================================================
 
