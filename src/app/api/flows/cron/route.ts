@@ -35,8 +35,10 @@ export async function GET(request: Request) {
   // can't recover the secret byte-by-byte from response-time deltas.
   // Length pre-check is required by timingSafeEqual (throws otherwise)
   // and leaks only the length itself, which isn't sensitive.
-  const supplied = request.headers.get('x-cron-secret') ?? ''
-  const suppliedBuf = Buffer.from(supplied)
+  const viaHeader = request.headers.get('x-cron-secret') ?? ''
+  const viaAuth = (request.headers.get('authorization') ?? '').replace(/^Bearer\s+/i, '')
+  const secret = viaHeader || viaAuth
+  const suppliedBuf = Buffer.from(secret)
   const expectedBuf = Buffer.from(expected)
   if (
     suppliedBuf.length !== expectedBuf.length ||

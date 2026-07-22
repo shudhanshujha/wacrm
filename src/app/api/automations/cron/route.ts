@@ -19,8 +19,9 @@ export async function GET(request: Request) {
   if (!expected) {
     return NextResponse.json({ error: 'cron not configured' }, { status: 503 })
   }
-  const supplied = request.headers.get('x-cron-secret')
-  if (supplied !== expected) {
+  const viaHeader = request.headers.get('x-cron-secret')
+  const viaAuth = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '')
+  if (viaHeader !== expected && viaAuth !== expected) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

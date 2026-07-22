@@ -6,7 +6,7 @@ import { normalizePhone, phonesMatch } from '@/lib/whatsapp/phone-utils'
 import { verifyMetaWebhookSignature } from '@/lib/whatsapp/webhook-signature'
 import { runAutomationsForTrigger } from '@/lib/automations/engine'
 import { dispatchInboundToFlows } from '@/lib/flows/engine'
-import { Contact } from '@/types'
+import type { Contact } from '@/types'
 
 // Lazy-initialized to avoid build-time crash when env vars are missing
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -324,9 +324,10 @@ async function handleStatusUpdate(status: {
   if (!isValidStatusTransition(recipient.status, status.status)) return
 
   const update: Record<string, unknown> = { status: status.status }
-  if (status.status === 'sent' && !('sent_at' in update)) update.sent_at = tsIso
+  if (status.status === 'sent') update.sent_at = tsIso
   if (status.status === 'delivered') update.delivered_at = tsIso
   if (status.status === 'read') update.read_at = tsIso
+  if (status.status === 'replied') update.replied_at = tsIso
 
   const { error: recUpdateErr } = await supabaseAdmin()
     .from('broadcast_recipients')

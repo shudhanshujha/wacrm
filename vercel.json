@@ -1,6 +1,18 @@
 {
   "crons": [
     {
+      "path": "/api/cron/keep-alive",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/automations/cron",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/flows/cron",
+      "schedule": "*/5 * * * *"
+    },
+    {
       "path": "/api/integrations/shopify/process-abandoned-carts",
       "schedule": "0 0 * * *"
     },

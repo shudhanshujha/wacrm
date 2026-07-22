@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import { CornerUpLeft, Copy, SmilePlus } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -38,6 +38,18 @@ export function MessageActions({
   // interacts elsewhere.
   const [touchOpen, setTouchOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!touchOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setTouchOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [touchOpen]);
 
   const isAgent =
     message.sender_type === "agent" || message.sender_type === "bot";
@@ -78,12 +90,12 @@ export function MessageActions({
   // in the row no longer reveals the toolbar.
   return (
     <div
+      ref={wrapperRef}
       className={cn(
         "flex w-full",
         isAgent ? "justify-end" : "justify-start",
       )}
       onContextMenu={handleContextMenu}
-      onBlur={() => setTouchOpen(false)}
     >
       <div className="group/actions relative max-w-[75%]">
         {children}
